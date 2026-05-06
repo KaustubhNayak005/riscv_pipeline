@@ -1,0 +1,27 @@
+# Publish only the hand-maintained RISC-V project sources.
+
+# Vivado-generated projects, caches, logs, reports, and local runtime files
+.Xil/
+build/
+*.jou
+*.log
+*.str
+*.backup.jou
+*.backup.log
+vivado_pid*.str
+dfx_runtime.txt
+
+# Documentation/instruction markdown stays local
+docs/
+*.md
+!README.md
+
+# Publish only the curated README screenshots
+assets/screenshots/*
+!assets/screenshots/vivado_project_manager.png
+!assets/screenshots/vivado_project_summary.png
+!assets/screenshots/vivado_design_runs.png
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
