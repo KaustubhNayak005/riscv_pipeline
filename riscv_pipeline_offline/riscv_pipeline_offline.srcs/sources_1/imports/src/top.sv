@@ -1,0 +1,559 @@
+/*
+ * Module: top
+ * Description: Top-level 32-bit 5-stage pipelined RV32I processor. Instantiates
+ *              fetch, decode, execute, memory, write-back, pipeline registers,
+ *              hazard detection, forwarding, instruction memory, data memory,
+ *              and register file through their stage modules.
+ *              UART pins are threaded through to mem_stage.
+ *              Instruction-memory loader inputs are exposed for Phase 4.
+ *              Performance counters: cycle, instruction, stall, flush.
+ *              halt: asserted on ECALL/EBREAK, freezes the pipeline.
+ * Inputs: clk, rst, uart_rxd, instr_load_*, dbg_reg_addr, dbg_dmem_addr,
+ *         dbg_trace_sel, cpu_reset_n
+ * Outputs: debug trace, uart_txd, halt, dbg_reg_data, dbg_dmem_data,
+ *          dbg_perf_*, dbg_trace_*, dbg_trace_count, dbg_trace_head
+ */
+(* keep_hierarchy = "yes" *)
+module top (
+    input  logic        clk,
+    input  logic        rst,
+    output logic [31:0] debug_pc_current,
+    output logic        debug_wb_reg_write,
+    output logic [4:0]  debug_wb_rd,
+    output logic [31:0] debug_wb_write_data,
+    output logic        halt,
+    input  logic        instr_load_en,
+    input  logic [9:0]  instr_load_word_addr,
+    input  logic [31:0] instr_load_data,
+    // UART pins (connected to mem_stage -> uart_peripheral)
+    input  logic        uart_rxd,
+    output logic        uart_txd,
+    // Debug read ports for UART monitor
+    input  logic [4:0]  dbg_reg_addr,
+    output logic [31:0] dbg_reg_data,
+    input  logic [9:0]  dbg_dmem_addr,
+    output logic [31:0] dbg_dmem_data,
+    output logic [31:0] dbg_perf_cycle,
+    output logic [31:0] dbg_perf_instr,
+    output logic [31:0] dbg_perf_stall,
+    output logic [31:0] dbg_perf_flush,
+    input  logic [1:0]  dbg_trace_sel,
+    output logic [31:0] dbg_trace_pc,
+    output logic [31:0] dbg_trace_instr,
+    output logic [31:0] dbg_trace_wb_data,
+    output logic [31:0] dbg_trace_status,
+    output logic [2:0]  dbg_trace_count,
+    output logic [1:0]  dbg_trace_head
+);
+
+    logic [31:0] pc_current;
+    logic [31:0] if_pc;
+    logic [31:0] if_instr;
+    logic [31:0] if_id_pc;
+    logic [31:0] if_id_instr;
+    logic        if_id_valid;
+
+    logic [31:0] id_pc;
+    logic [31:0] id_rs1_data;
+    logic [31:0] id_rs2_data;
+    logic [31:0] id_imm;
+    logic [4:0]  id_rs1;
+    logic [4:0]  id_rs2;
+    logic [4:0]  id_rd;
+    logic [2:0]  id_funct3;
+    logic [6:0]  id_opcode;
+    logic [3:0]  id_alu_control;
+    logic        id_reg_write;
+    logic        id_mem_read;
+    logic        id_mem_write;
+    logic        id_mem_to_reg;
+    logic        id_alu_src;
+    logic        id_branch;
+    logic        id_jump;
+
+    logic [31:0] id_ex_pc;
+    logic [31:0] id_ex_instr;
+    logic [31:0] id_ex_rs1_data;
+    logic [31:0] id_ex_rs2_data;
+    logic [31:0] id_ex_imm;
+    logic [4:0]  id_ex_rs1;
+    logic [4:0]  id_ex_rs2;
+    logic [4:0]  id_ex_rd;
+    logic [2:0]  id_ex_funct3;
+    logic [6:0]  id_ex_opcode;
+    logic [3:0]  id_ex_alu_control;
+    logic        id_ex_reg_write;
+    logic        id_ex_mem_read;
+    logic        id_ex_mem_write;
+    logic        id_ex_mem_to_reg;
+    logic        id_ex_alu_src;
+    logic        id_ex_branch;
+    logic        id_ex_jump;
+    logic        id_ex_valid;
+
+    logic [31:0] ex_alu_result;
+    logic [31:0] ex_rs2_data;
+    logic [31:0] ex_branch_target;
+    logic [4:0]  ex_rd;
+    logic [2:0]  ex_funct3;
+    logic        ex_branch_taken;
+    logic        ex_reg_write;
+    logic        ex_mem_read;
+    logic        ex_mem_write;
+    logic        ex_mem_to_reg;
+
+    logic [31:0] ex_mem_pc;
+    logic [31:0] ex_mem_instr;
+    logic [31:0] ex_mem_alu_result;
+    logic [31:0] ex_mem_rs2_data;
+    logic [31:0] ex_mem_branch_target;
+    logic [4:0]  ex_mem_rd;
+    logic [2:0]  ex_mem_funct3;
+    logic        ex_mem_branch_taken;
+    logic        ex_mem_reg_write;
+    logic        ex_mem_mem_read;
+    logic        ex_mem_mem_write;
+    logic        ex_mem_mem_to_reg;
+    logic        ex_mem_valid;
+
+    logic [31:0] mem_alu_result;
+    logic [31:0] mem_read_data;
+    logic [4:0]  mem_rd;
+    logic        mem_reg_write;
+    logic        mem_mem_to_reg;
+
+    logic [31:0] mem_wb_pc;
+    logic [31:0] mem_wb_instr;
+    logic [31:0] mem_wb_alu_result;
+    logic [31:0] mem_wb_mem_read_data;
+    logic [4:0]  mem_wb_rd;
+    logic        mem_wb_reg_write;
+    logic        mem_wb_mem_to_reg;
+    logic        mem_wb_valid;
+
+    logic [31:0] wb_write_data;
+    logic [4:0]  wb_rd;
+    logic        wb_reg_write;
+
+    logic        stall;
+    logic        flush;
+    logic        halt_id;
+    logic        illegal_id;
+    logic        halt_latched;
+    logic        illegal_latched;
+    logic        pc_sel;
+    logic [31:0] branch_target;
+    logic [1:0]  forward_a;
+    logic [1:0]  forward_b;
+    logic [31:0] perf_cycle_count;
+    logic [31:0] perf_instr_count;
+    logic [31:0] perf_stall_count;
+    logic [31:0] perf_flush_count;
+
+    logic [31:0] debug_last_commit_pc;
+    logic [31:0] debug_last_commit_instr;
+    logic [31:0] debug_last_wb_write_data;
+    logic [4:0]  debug_last_wb_rd;
+    logic        debug_last_wb_reg_write;
+    logic [31:0] debug_fault_pc;
+    logic [31:0] debug_fault_instr;
+
+    logic [4:0] if_id_rs1_for_hazard;
+    logic [4:0] if_id_rs2_for_hazard;
+    logic       if_id_uses_rs1;
+    logic       if_id_uses_rs2;
+    logic       effective_stall;
+
+    assign flush = pc_sel;
+    assign effective_stall = stall || halt_latched;
+
+    always_comb begin
+        unique case (if_id_instr[6:0])
+            7'b0110011,
+            7'b0100011,
+            7'b1100011: begin
+                if_id_uses_rs1 = 1'b1;
+                if_id_uses_rs2 = 1'b1;
+            end
+            7'b0010011,
+            7'b0000011,
+            7'b1100111: begin
+                if_id_uses_rs1 = 1'b1;
+                if_id_uses_rs2 = 1'b0;
+            end
+            default: begin
+                if_id_uses_rs1 = 1'b0;
+                if_id_uses_rs2 = 1'b0;
+            end
+        endcase
+    end
+
+    assign if_id_rs1_for_hazard = if_id_uses_rs1 ? if_id_instr[19:15] : 5'd0;
+    assign if_id_rs2_for_hazard = if_id_uses_rs2 ? if_id_instr[24:20] : 5'd0;
+
+    (* DONT_TOUCH = "yes" *) if_stage u_if_stage (
+        .clk(clk),
+        .rst(rst),
+        .stall(effective_stall),
+        .pc_sel(pc_sel),
+        .branch_target(branch_target),
+        .instr_load_en(instr_load_en),
+        .instr_load_word_addr(instr_load_word_addr),
+        .instr_load_data(instr_load_data),
+        .if_id_pc(if_pc),
+        .if_id_instr(if_instr),
+        .pc_current(pc_current)
+    );
+
+    (* DONT_TOUCH = "yes" *) if_id_reg u_if_id_reg (
+        .clk(clk),
+        .rst(rst),
+        .stall(effective_stall),
+        .flush(flush),
+        .valid_in(1'b1),
+        .pc_in(if_pc),
+        .instr_in(if_instr),
+        .pc_out(if_id_pc),
+        .instr_out(if_id_instr),
+        .valid_out(if_id_valid)
+    );
+
+    (* DONT_TOUCH = "yes" *) hazard_detection_unit u_hazard_detection_unit (
+        .id_ex_rd(id_ex_rd),
+        .id_ex_mem_read(id_ex_mem_read),
+        .if_id_rs1(if_id_rs1_for_hazard),
+        .if_id_rs2(if_id_rs2_for_hazard),
+        .stall(stall)
+    );
+
+    (* DONT_TOUCH = "yes" *) id_stage u_id_stage (
+        .clk(clk),
+        .rst(rst),
+        .if_id_instr(if_id_instr),
+        .if_id_pc(if_id_pc),
+        .flush(flush),
+        .wb_reg_write(wb_reg_write),
+        .wb_rd(wb_rd),
+        .wb_write_data(wb_write_data),
+        .id_ex_pc(id_pc),
+        .id_ex_rs1_data(id_rs1_data),
+        .id_ex_rs2_data(id_rs2_data),
+        .id_ex_imm(id_imm),
+        .id_ex_rs1(id_rs1),
+        .id_ex_rs2(id_rs2),
+        .id_ex_rd(id_rd),
+        .id_ex_funct3(id_funct3),
+        .id_ex_opcode(id_opcode),
+        .id_ex_alu_control(id_alu_control),
+        .id_ex_reg_write(id_reg_write),
+        .id_ex_mem_read(id_mem_read),
+        .id_ex_mem_write(id_mem_write),
+        .id_ex_mem_to_reg(id_mem_to_reg),
+        .id_ex_alu_src(id_alu_src),
+        .id_ex_branch(id_branch),
+        .id_ex_jump(id_jump),
+        .halt(halt_id),
+        .illegal_instr(illegal_id),
+        .dbg_reg_addr(dbg_reg_addr),
+        .dbg_reg_data(dbg_reg_data)
+    );
+
+    (* DONT_TOUCH = "yes" *) id_ex_reg u_id_ex_reg (
+        .clk(clk),
+        .rst(rst),
+        .stall(1'b0),
+        .flush(flush || stall),
+        .valid_in(if_id_valid),
+        .pc_in(id_pc),
+        .instr_in(if_id_instr),
+        .rs1_data_in(id_rs1_data),
+        .rs2_data_in(id_rs2_data),
+        .imm_in(id_imm),
+        .rs1_in(id_rs1),
+        .rs2_in(id_rs2),
+        .rd_in(id_rd),
+        .funct3_in(id_funct3),
+        .opcode_in(id_opcode),
+        .alu_control_in(id_alu_control),
+        .reg_write_in(id_reg_write),
+        .mem_read_in(id_mem_read),
+        .mem_write_in(id_mem_write),
+        .mem_to_reg_in(id_mem_to_reg),
+        .alu_src_in(id_alu_src),
+        .branch_in(id_branch),
+        .jump_in(id_jump),
+        .pc_out(id_ex_pc),
+        .instr_out(id_ex_instr),
+        .rs1_data_out(id_ex_rs1_data),
+        .rs2_data_out(id_ex_rs2_data),
+        .imm_out(id_ex_imm),
+        .rs1_out(id_ex_rs1),
+        .rs2_out(id_ex_rs2),
+        .rd_out(id_ex_rd),
+        .funct3_out(id_ex_funct3),
+        .opcode_out(id_ex_opcode),
+        .alu_control_out(id_ex_alu_control),
+        .reg_write_out(id_ex_reg_write),
+        .mem_read_out(id_ex_mem_read),
+        .mem_write_out(id_ex_mem_write),
+        .mem_to_reg_out(id_ex_mem_to_reg),
+        .alu_src_out(id_ex_alu_src),
+        .branch_out(id_ex_branch),
+        .jump_out(id_ex_jump),
+        .valid_out(id_ex_valid)
+    );
+
+    (* DONT_TOUCH = "yes" *) ex_stage u_ex_stage (
+        .id_ex_pc(id_ex_pc),
+        .id_ex_rs1_data(id_ex_rs1_data),
+        .id_ex_rs2_data(id_ex_rs2_data),
+        .id_ex_imm(id_ex_imm),
+        .id_ex_rs1(id_ex_rs1),
+        .id_ex_rs2(id_ex_rs2),
+        .id_ex_rd(id_ex_rd),
+        .id_ex_funct3(id_ex_funct3),
+        .id_ex_opcode(id_ex_opcode),
+        .id_ex_alu_control(id_ex_alu_control),
+        .id_ex_reg_write(id_ex_reg_write),
+        .id_ex_mem_read(id_ex_mem_read),
+        .id_ex_mem_write(id_ex_mem_write),
+        .id_ex_mem_to_reg(id_ex_mem_to_reg),
+        .id_ex_alu_src(id_ex_alu_src),
+        .id_ex_branch(id_ex_branch),
+        .id_ex_jump(id_ex_jump),
+        .ex_mem_alu_result(ex_mem_alu_result),
+        .ex_mem_rd(ex_mem_rd),
+        .ex_mem_reg_write(ex_mem_reg_write),
+        .mem_wb_write_data(wb_write_data),
+        .mem_wb_rd(mem_wb_rd),
+        .mem_wb_reg_write(mem_wb_reg_write),
+        .ex_mem_alu_result_in(ex_alu_result),
+        .ex_mem_rs2_data_in(ex_rs2_data),
+        .ex_mem_branch_target_in(ex_branch_target),
+        .ex_mem_rd_in(ex_rd),
+        .ex_mem_funct3_in(ex_funct3),
+        .ex_mem_branch_taken_in(ex_branch_taken),
+        .ex_mem_reg_write_in(ex_reg_write),
+        .ex_mem_mem_read_in(ex_mem_read),
+        .ex_mem_mem_write_in(ex_mem_write),
+        .ex_mem_mem_to_reg_in(ex_mem_to_reg),
+        .forward_a(forward_a),
+        .forward_b(forward_b),
+        .pc_sel(pc_sel),
+        .branch_target(branch_target)
+    );
+
+    (* DONT_TOUCH = "yes" *) ex_mem_reg u_ex_mem_reg (
+        .clk(clk),
+        .rst(rst),
+        .stall(1'b0),
+        .flush(1'b0),
+        .valid_in(id_ex_valid),
+        .pc_in(id_ex_pc),
+        .instr_in(id_ex_instr),
+        .alu_result_in(ex_alu_result),
+        .rs2_data_in(ex_rs2_data),
+        .branch_target_in(ex_branch_target),
+        .rd_in(ex_rd),
+        .funct3_in(ex_funct3),
+        .branch_taken_in(ex_branch_taken),
+        .reg_write_in(ex_reg_write),
+        .mem_read_in(ex_mem_read),
+        .mem_write_in(ex_mem_write),
+        .mem_to_reg_in(ex_mem_to_reg),
+        .pc_out(ex_mem_pc),
+        .instr_out(ex_mem_instr),
+        .alu_result_out(ex_mem_alu_result),
+        .rs2_data_out(ex_mem_rs2_data),
+        .branch_target_out(ex_mem_branch_target),
+        .rd_out(ex_mem_rd),
+        .funct3_out(ex_mem_funct3),
+        .branch_taken_out(ex_mem_branch_taken),
+        .reg_write_out(ex_mem_reg_write),
+        .mem_read_out(ex_mem_mem_read),
+        .mem_write_out(ex_mem_mem_write),
+        .mem_to_reg_out(ex_mem_mem_to_reg),
+        .valid_out(ex_mem_valid)
+    );
+
+    (* DONT_TOUCH = "yes" *) mem_stage u_mem_stage (
+        .clk                    (clk),
+        .rst                    (rst),
+        .ex_mem_alu_result      (ex_mem_alu_result),
+        .ex_mem_rs2_data        (ex_mem_rs2_data),
+        .ex_mem_rd              (ex_mem_rd),
+        .ex_mem_funct3          (ex_mem_funct3),
+        .ex_mem_reg_write       (ex_mem_reg_write),
+        .ex_mem_mem_read        (ex_mem_mem_read),
+        .ex_mem_mem_write       (ex_mem_mem_write),
+        .ex_mem_mem_to_reg      (ex_mem_mem_to_reg),
+        .mem_wb_alu_result_in   (mem_alu_result),
+        .mem_wb_mem_read_data_in(mem_read_data),
+        .mem_wb_rd_in           (mem_rd),
+        .mem_wb_reg_write_in    (mem_reg_write),
+        .mem_wb_mem_to_reg_in   (mem_mem_to_reg),
+        .debug_pc_current       (pc_current),
+        .debug_last_commit_pc   (debug_last_commit_pc),
+        .debug_last_commit_instr(debug_last_commit_instr),
+        .debug_last_wb_data     (debug_last_wb_write_data),
+        .debug_last_wb_rd       (debug_last_wb_rd),
+        .debug_last_wb_reg_write(debug_last_wb_reg_write),
+        .debug_fault_pc         (debug_fault_pc),
+        .debug_fault_instr      (debug_fault_instr),
+        .debug_halt             (halt_latched),
+        .debug_illegal          (illegal_latched),
+        .debug_stall            (stall),
+        .debug_flush            (flush),
+        .debug_pc_sel           (pc_sel),
+        .debug_commit_valid     (mem_wb_valid),
+        .debug_commit_pc        (mem_wb_pc),
+        .debug_commit_instr     (mem_wb_instr),
+        .debug_commit_rd        (wb_rd),
+        .debug_commit_reg_write (wb_reg_write),
+        .debug_commit_wb_data   (wb_write_data),
+        .perf_cycle_count       (perf_cycle_count),
+        .perf_instr_count       (perf_instr_count),
+        .perf_stall_count       (perf_stall_count),
+        .perf_flush_count       (perf_flush_count),
+        // UART pins threaded to peripheral
+        .uart_rxd               (uart_rxd),
+        .uart_txd               (uart_txd),
+        // Debug read port for UART monitor
+        .dbg_dmem_addr          (dbg_dmem_addr),
+        .dbg_dmem_data          (dbg_dmem_data),
+        .mon_trace_pc           (dbg_trace_pc),
+        .mon_trace_instr         (dbg_trace_instr),
+        .mon_trace_wb_data      (dbg_trace_wb_data),
+        .mon_trace_status       (dbg_trace_status),
+        .mon_trace_count        (dbg_trace_count),
+        .mon_trace_head         (dbg_trace_head),
+        .mon_trace_sel          (dbg_trace_sel)
+    );
+
+    (* DONT_TOUCH = "yes" *) mem_wb_reg u_mem_wb_reg (
+        .clk(clk),
+        .rst(rst),
+        .stall(1'b0),
+        .flush(1'b0),
+        .valid_in(ex_mem_valid),
+        .pc_in(ex_mem_pc),
+        .instr_in(ex_mem_instr),
+        .alu_result_in(mem_alu_result),
+        .mem_read_data_in(mem_read_data),
+        .rd_in(mem_rd),
+        .reg_write_in(mem_reg_write),
+        .mem_to_reg_in(mem_mem_to_reg),
+        .pc_out(mem_wb_pc),
+        .instr_out(mem_wb_instr),
+        .alu_result_out(mem_wb_alu_result),
+        .mem_read_data_out(mem_wb_mem_read_data),
+        .rd_out(mem_wb_rd),
+        .reg_write_out(mem_wb_reg_write),
+        .mem_to_reg_out(mem_wb_mem_to_reg),
+        .valid_out(mem_wb_valid)
+    );
+
+    (* DONT_TOUCH = "yes" *) wb_stage u_wb_stage (
+        .mem_wb_alu_result(mem_wb_alu_result),
+        .mem_wb_mem_read_data(mem_wb_mem_read_data),
+        .mem_wb_rd(mem_wb_rd),
+        .mem_wb_reg_write(mem_wb_reg_write),
+        .mem_wb_mem_to_reg(mem_wb_mem_to_reg),
+        .wb_write_data(wb_write_data),
+        .wb_rd(wb_rd),
+        .wb_reg_write(wb_reg_write)
+    );
+
+    assign debug_pc_current = pc_current;
+    assign debug_wb_reg_write = wb_reg_write;
+    assign debug_wb_rd = wb_rd;
+    assign debug_wb_write_data = wb_write_data;
+
+    assign dbg_perf_cycle = perf_cycle_count;
+    assign dbg_perf_instr = perf_instr_count;
+    assign dbg_perf_stall = perf_stall_count;
+    assign dbg_perf_flush = perf_flush_count;
+
+    // =================================================================
+    // Debug capture
+    // =================================================================
+    // The debug block exposes the most recent retirement, the first faulting
+    // instruction, and a small trace of the last committed instructions.
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            debug_last_commit_pc     <= 32'd0;
+            debug_last_commit_instr  <= 32'h00000013;
+            debug_last_wb_write_data <= 32'd0;
+            debug_last_wb_rd         <= 5'd0;
+            debug_last_wb_reg_write  <= 1'b0;
+            debug_fault_pc           <= 32'd0;
+            debug_fault_instr        <= 32'h00000013;
+        end else begin
+            if (mem_wb_valid) begin
+                debug_last_commit_pc     <= mem_wb_pc;
+                debug_last_commit_instr  <= mem_wb_instr;
+                debug_last_wb_write_data <= wb_write_data;
+                debug_last_wb_rd         <= wb_rd;
+                debug_last_wb_reg_write  <= wb_reg_write;
+            end
+
+            if (halt_id || illegal_id) begin
+                debug_fault_pc    <= if_id_pc;
+                debug_fault_instr <= if_id_instr;
+            end
+        end
+    end
+
+    // =================================================================
+    // Halt on ECALL/EBREAK
+    // =================================================================
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            halt_latched <= 1'b0;
+            illegal_latched <= 1'b0;
+        end else begin
+            if (halt_id || illegal_id) begin
+                halt_latched <= 1'b1;
+            end
+            if (illegal_id) begin
+                illegal_latched <= 1'b1;
+            end
+        end
+    end
+
+    assign halt = halt_latched;
+
+    // =================================================================
+    // Performance Counters
+    // =================================================================
+    // Exposed as memory-mapped reads via mem_stage at 0xC0000000-0xC000000F:
+    //   0xC0000000 = perf_cycle_count    (total clock cycles since reset)
+    //   0xC0000004 = perf_instr_count    (committed instructions)
+    //   0xC0000008 = perf_stall_count    (load-use stall cycles)
+    //   0xC000000C = perf_flush_count    (branch/jump flush events)
+    // -----------------------------------------------------------------
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            perf_cycle_count <= 32'd0;
+            perf_instr_count <= 32'd0;
+            perf_stall_count <= 32'd0;
+            perf_flush_count <= 32'd0;
+        end else begin
+            // Cycle counter: increments every clock cycle
+            perf_cycle_count <= perf_cycle_count + 32'd1;
+
+            // Instruction counter: counts all retired non-bubble instructions.
+            if (mem_wb_valid)
+                perf_instr_count <= perf_instr_count + 32'd1;
+
+            // Stall counter: counts cycles where a load-use stall is active
+            if (stall)
+                perf_stall_count <= perf_stall_count + 32'd1;
+
+            // Flush counter: counts branch/jump flush events
+            if (flush)
+                perf_flush_count <= perf_flush_count + 32'd1;
+        end
+    end
+
+endmodule

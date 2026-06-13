@@ -1,0 +1,38 @@
+# Vivado temporary and cache files
+.Xil/
+*.jou
+*.log
+*.pb
+*.str
+*.backup.*
+usage_statistics_webtalk.*
+
+# Simulation files
+xsim.dir/
+*.vcd
+*.wdb
+*.wcfg
+dfx_runtime.txt
+
+# Generated project folders
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+
+# Bitstreams and build artifacts
+*.bit
+*.bin
+*.mcs
+*.prm
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Custom ignored directories
+.commandcode/
+mkdir/
+.githooks/
