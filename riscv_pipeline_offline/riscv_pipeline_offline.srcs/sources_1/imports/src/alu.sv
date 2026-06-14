@@ -12,6 +12,14 @@ module alu (
     output logic        zero
 );
 
+    logic signed [63:0] mul_ss;
+    logic signed [63:0] mul_su;
+    logic        [63:0] mul_uu;
+
+    assign mul_ss = $signed(operand_a) * $signed(operand_b);
+    assign mul_su = $signed(operand_a) * $signed({1'b0, operand_b});
+    assign mul_uu = operand_a * operand_b;
+
     always_comb begin
         unique case (alu_ctrl)
             4'b0000: result = operand_a + operand_b;
@@ -24,6 +32,10 @@ module alu (
             4'b0111: result = $signed(operand_a) >>> operand_b[4:0];
             4'b1000: result = ($signed(operand_a) < $signed(operand_b)) ? 32'd1 : 32'd0;
             4'b1001: result = (operand_a < operand_b) ? 32'd1 : 32'd0;
+            4'b1010: result = mul_ss[31:0];   // MUL
+            4'b1011: result = mul_ss[63:32];  // MULH
+            4'b1100: result = mul_su[63:32];  // MULHSU
+            4'b1101: result = mul_uu[63:32];  // MULHU
             default: result = 32'd0;
         endcase
     end
