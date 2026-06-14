@@ -52,6 +52,7 @@ module id_stage (
     logic [6:0] opcode;
     logic [2:0] funct3;
     logic       funct7_bit5;
+    logic       funct7_bit0;
     logic [3:0] alu_op;
     logic       reg_write_dec;
     logic       mem_read_dec;
@@ -76,6 +77,7 @@ module id_stage (
     assign id_ex_rs1   = if_id_instr[19:15];
     assign id_ex_rs2   = if_id_instr[24:20];
     assign funct7_bit5 = if_id_instr[30];
+    assign funct7_bit0 = if_id_instr[25];
 
     assign id_ex_pc     = if_id_pc;
     assign id_ex_imm    = imm_dec;
@@ -108,6 +110,7 @@ module id_stage (
         .alu_op(alu_op),
         .funct3(funct3),
         .funct7_bit5(funct7_bit5),
+        .funct7_bit0(funct7_bit0),
         .alu_ctrl(alu_control_dec)
     );
 

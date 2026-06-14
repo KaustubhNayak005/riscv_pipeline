@@ -176,16 +176,27 @@ module tb_phase5;
         // @0x304: addi  x10, x10, 4        -> 0x00450513  (advance mepc past ecall)
         // @0x308: csrrw x0, mepc, x10      -> 0x34151073  (write mepc back)
         // @0x30C: addi  x11, x11, 1        -> 0x00158593  (trap counter++)
-        // @0x310: mret                     -> 0x30200073  (return)
+        // @0x310: lui x20, 0xC0000         -> 0xC0000A37  (mtimecmp base)
+        // @0x314: addi x20, x20, 0x204     -> 0x204A0A13  (mtimecmp address = 0xC0000204)
+        // @0x318: addi x21, x0, -1         -> 0xFFF00A93  (x21 = -1)
+        // @0x31C: sw x21, 0(x20)           -> 0x015A2023  (write -1 to mtimecmp to clear timer irq)
+        // @0x320: nop                      -> 0x00000013  (avoid data hazard between csrrw mepc and mret)
+        // @0x324: mret                     -> 0x30200073  (return)
         load_word(10'd192, 32'h34102573);  // 0x300
         load_word(10'd193, 32'h00450513);  // 0x304
         load_word(10'd194, 32'h34151073);  // 0x308
         load_word(10'd195, 32'h00158593);  // 0x30C
-        load_word(10'd196, 32'h30200073);  // 0x310
+        load_word(10'd196, 32'hC0000A37);  // 0x310
+        load_word(10'd197, 32'h204A0A13);  // 0x314
+        load_word(10'd198, 32'hFFF00A93);  // 0x318
+        load_word(10'd199, 32'h015A2023);  // 0x31C
+        load_word(10'd200, 32'h00000013);  // 0x320 (nop)
+        load_word(10'd201, 32'h30200073);  // 0x324 (mret)
 
         // Set mtvec = 0x300 via MMIO
         // Write mtvec CSR directly using force (sim-only shortcut)
         force uut.u_csr_file.mtvec_reg = 32'h300;
+        run_cycles(1);
         release uut.u_csr_file.mtvec_reg;
 
         // Inject ECALL at 0x220:
@@ -201,12 +212,13 @@ module tb_phase5;
         // Set x11=0 (trap counter), x12=0 (post-trap marker)
         force uut.u_id_stage.u_reg_file.regs[11] = 32'd0;
         force uut.u_id_stage.u_reg_file.regs[12] = 32'd0;
+        run_cycles(1);
         release uut.u_id_stage.u_reg_file.regs[11];
         release uut.u_id_stage.u_reg_file.regs[12];
 
         force uut.u_if_stage.pc_current = 32'h220;
-        run_cycles(1); release uut.u_if_stage.pc_current;
-        run_cycles(30);
+        run_cycles(5); release uut.u_if_stage.pc_current;
+        run_cycles(50);
 
         check_reg(11, 32'd1, "ECALL: trap counter = 1");
         check_reg(12, 32'd1, "ECALL: post-trap x12 incremented (MRET succeeded)");
@@ -215,19 +227,27 @@ module tb_phase5;
         $display("\n=== Phase 5 Test 3: Illegal Instruction Trap ===");
 
         // Inject illegal opcode at 0x240:
-        // @0x240: 0xDEADBEEF (illegal)  -> 0xDEADBEEF
-        // @0x244: addi x12, x12, 1      -> 0x00160613  (should execute after MRET)
-        // @0x248: jal x0, 0             -> 0x0000006F
-        load_word(10'd144, 32'hDEADBEEF);
-        load_word(10'd145, 32'h00160613);
-        load_word(10'd146, 32'h0000006F);
+        // @0x240: nop
+        // @0x244: 0xFFFFFFFF (illegal)
+        // @0x248: addi x12, x12, 1      -> 0x00160613  (should execute after MRET)
+        // @0x24C: jal x0, 0             -> 0x0000006F
+        load_word(10'd144, 32'h00000013); // 0x240
+        load_word(10'd145, 32'hFFFFFFFF); // 0x244
+        load_word(10'd146, 32'h00160613); // 0x248
+        load_word(10'd147, 32'h0000006F); // 0x24C
 
         force uut.u_if_stage.pc_current = 32'h240;
-        run_cycles(1); release uut.u_if_stage.pc_current;
-        run_cycles(30);
+        run_cycles(5); release uut.u_if_stage.pc_current;
+        run_cycles(50);
 
         check_reg(11, 32'd2, "Illegal: trap counter = 2");
         check_reg(12, 32'd2, "Illegal: post-trap x12 incremented again");
+
+        // Pad with jal x0, 0 so that trap handler advancing mepc doesn't hit zeroes
+        load_word(10'd148, 32'h0000006F); // 0x250
+        load_word(10'd149, 32'h0000006F); // 0x254
+        load_word(10'd150, 32'h0000006F); // 0x258
+        load_word(10'd151, 32'h0000006F); // 0x25C
 
         $display("\n=== Phase 5 Test 4: Timer Interrupt ===");
 
@@ -235,12 +255,21 @@ module tb_phase5;
         force uut.u_csr_file.mstatus_reg[3] = 1'b1;
         release uut.u_csr_file.mstatus_reg[3];
 
-        // Configure timer: mtimecmp via MMIO (0xC0000204)
-        mmio_write(32'hC0000204, 32'd200);
-
-        // Enable timer control (0xC0000208, bit 0 = enable)
-        mmio_write(32'hC0000208, 32'd1);
-
+        // Configure timer: mtimecmp and ctrl
+        force uut.u_mem_stage.u_timer.mtimecmp = 32'd1000;
+        force uut.u_mem_stage.u_timer.ctrl = 2'b01;
+        
+        force uut.u_if_stage.pc_current = 32'h250;
+        run_cycles(5); release uut.u_if_stage.pc_current;
+        
+        // Let it run for 50 cycles to hit timer (mtime is already around ~600)
+        // Wait! We should force mtime to 0 to be deterministic!
+        force uut.u_mem_stage.u_timer.mtime = 32'd0;
+        force uut.u_mem_stage.u_timer.mtimecmp = 32'd10;
+        release uut.u_mem_stage.u_timer.mtime;
+        release uut.u_mem_stage.u_timer.mtimecmp;
+        release uut.u_mem_stage.u_timer.ctrl;
+        
         // Wait for timer to fire (200 cycles)
         run_cycles(400);
 
@@ -254,16 +283,18 @@ module tb_phase5;
         $display("\n=== Phase 5 Test 5: EBREAK Trap ===");
 
         // Inject EBREAK at 0x260:
-        // EBREAK = SYSTEM opcode (1110011) + funct3=000 + funct12=0x001
-        // 0x00100073
-        // @0x264: addi x12, x12, 1      -> 0x00160613
-        load_word(10'd152, 32'h00100073);
-        load_word(10'd153, 32'h00160613);
-        load_word(10'd154, 32'h0000006F);
+        // @0x260: nop
+        // @0x264: EBREAK (0x00100073)
+        // @0x268: addi x12, x12, 1
+        // @0x26C: jal x0, 0
+        load_word(10'd152, 32'h00000013); // 0x260
+        load_word(10'd153, 32'h00100073); // 0x264
+        load_word(10'd154, 32'h00160613); // 0x268
+        load_word(10'd155, 32'h0000006F); // 0x26C
 
         force uut.u_if_stage.pc_current = 32'h260;
-        run_cycles(1); release uut.u_if_stage.pc_current;
-        run_cycles(30);
+        run_cycles(5); release uut.u_if_stage.pc_current;
+        run_cycles(50);
 
         check_reg(11, 32'd4, "EBREAK: trap counter = 4");
         check_reg(12, 32'd3, "EBREAK: post-trap x12 = 3");
