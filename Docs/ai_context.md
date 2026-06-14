@@ -78,7 +78,7 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 
 - **Target Board:** PYNQ-Z2 / Zynq-7000 (`xc7z020clg400-1`)
 - **Core:** 5-stage pipelined RV32I-style core
-- **Key Features:** Forwarding, load-use stall, branch/jump flush, UART TX/RX integrated through MMIO, Performance counters, Subword memory ops (`LB`, `LH`, `SB`, `SH`), `ECALL`/`EBREAK` halt behavior, UART Monitor with 7 commands.
+- **Key Features:** Forwarding, load-use stall, branch/jump flush, UART TX/RX integrated through MMIO, Performance counters, Subword memory ops (`LB`, `LH`, `SB`, `SH`), ECALL/EBREAK/illegal instruction traps with MRET, Timer interrupts, M-mode CSRs (mstatus/mtvec/mepc/mcause), UART Monitor with 7 commands.
 
 ## 🚦 Current Project State
 - **Phase 0 (Hardware Demo):** Partial / Deferred. Bitstream generated successfully today. Physical board test is deferred until hardware is available.
@@ -86,9 +86,10 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 - **Phase 2 (RV32I Base):** Complete. Full subword memory ops, FENCE/NOP, ECALL halt, and illegal instruction detection are implemented and tested.
 - **Phase 3 (Debugging & Reliability):** Complete. MMIO debug registers, a 4-entry commit trace buffer, and assertion-oriented simulation checks are implemented and tested.
 - **Phase 4:** Substantially complete (RTL done, simulation verified, board-ready). The UART monitor (`uart_monitor.sv`) FSM was completely rewritten to fix a massive combinatorial synthesis hang and mathematically verified end-to-end in simulation using `tb_fpga_top.sv`. Bitstream generation succeeded.
+- **Phase 5 (Traps, Exceptions, Timers):** RTL complete. CSR file (`csr_file.sv`) with mstatus/mtvec/mepc/mcause, timer peripheral (`timer.sv`) at 0xC0000200, CSR instruction decode (CSRRW/CSRRS/CSRRC/CSRRWI/CSRRSI/CSRRCI), MRET execution, ECALL/EBREAK/illegal-instruction trap entry, timer interrupt generation. Testbench `tb_phase5.sv` created. Simulation pending in Vivado xsim.
 
 ## 🎯 Next Priorities (For the Next Agent)
-1. **Phase 5 - Traps and Timer Interrupts:** Execute the approved `implementation_plan.md` to add the Machine-mode CSRs (`mepc`, `mcause`, `mtvec`, `mstatus`), trap entry logic (`ECALL`, illegal instructions), and the memory-mapped Timer (`mtime`, `mtimecmp`).
+1. **Phase 5 Simulation Verification: RTL is complete. Run tb_phase5.sv in Vivado xsim to validate trap/timer logic and fix any failures..
 2. **Phase 6 - RV32M Multiply/Divide Extension:** Once traps are verified, proceed to RV32M implementation.
 3. **Board Arrival Checklist:** Once the board is acquired, immediately execute `Docs/planning/board_arrival_checklist.md` to validate the hardware baseline and physical UART loader.
 
@@ -137,7 +138,7 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 | `Docs/updates/README.md` | Index of all session logs. Append a link after every session. | ✅ Live | 2026-06-04 |
 
 ## 📝 Recent AI Updates
-- **2026-06-13**: Identified and fixed a major hardware anti-pattern in `uart_monitor.sv` (multiple array writes per cycle causing a massive MUX network that hung Vivado synthesis). Rewrote the FSM to use a strict single-write-per-cycle shift register. Created `tb_fpga_top.sv` and fully verified the monitor end-to-end in xsim. Generated the Phase 5 Implementation Plan.
+- **2026-06-14**: Implemented Phase 5 RTL (Traps, Exceptions, Timer Interrupts). Created csr_file.sv (mstatus/mtvec/mepc/mcause), timer.sv (0xC0000200), tb_phase5.sv. Updated 7 existing source files for CSR decode, trap entry, MRET execution, and timer MMIO. Phase 5 RTL is complete; simulation pending.`n- **2026-06-13**: Identified and fixed a major hardware anti-pattern in `uart_monitor.sv` (multiple array writes per cycle causing a massive MUX network that hung Vivado synthesis). Rewrote the FSM to use a strict single-write-per-cycle shift register. Created `tb_fpga_top.sv` and fully verified the monitor end-to-end in xsim. Generated the Phase 5 Implementation Plan.
 - **2026-06-05**: Updated `Docs/planning/ownership.md` to add DS srijith, Raunit kapoor, and Hemanth v as contributors per user request.
 - **2026-06-04**: Created `Docs/planning/no_board_execution_plan.md` and `Docs/planning/board_arrival_checklist.md` to clarify what can be developed in simulation/RTL without the physical FPGA board, and what must be done immediately once the board arrives. Appended both files to `status.md` and `ai_context.md`.
 - **2026-06-04**: Created `Docs/GETTING_STARTED.md` — comprehensive user guide for the project owner. Includes prompt template, folder structure walkthrough, 13-phase roadmap summary, session log explanation, git safety net overview, and troubleshooting section.

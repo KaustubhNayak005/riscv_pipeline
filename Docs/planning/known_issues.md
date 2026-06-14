@@ -1,13 +1,13 @@
 # Known Issues
 
-> **Last updated:** 2026-06-13  
+> **Last updated:** 2026-06-14  
 > Issues are never deleted — resolved issues are marked with resolution notes.
 
 ## Summary
 | Severity | Open | In Progress | Resolved | Total |
 |----------|-----:|------------:|---------:|------:|
 | Critical |    0 |           0 |        1 |     1 |
-| High     |    1 |           0 |        1 |     2 |
+| High     |    0 |           0 |        2 |     2 |
 | Medium   |    1 |           0 |        0 |     1 |
 | Low      |    0 |           0 |        0 |     0 |
 
@@ -41,12 +41,12 @@
 
 #### ISSUE-003: Missing trap path and timer interrupts
 - **Severity:** High
-- **Status:** Open
+- **Status:** Resolved
 - **Category:** Missing Feature
 - **Description:** No trap path / timer interrupts yet (Phase 5 pending).
 - **Workaround:** None.
-- **Resolution:** 
-- **Notes:** Pending Phase 5 completion.
+- **Resolution:** Resolved 2026-06-14. Phase 5 RTL implemented: csr_file.sv, timer.sv, CSR decode, trap entry, MRET, timer IRQ.
+- **Notes:** Simulation pending in Vivado xsim.
 
 ## Known Limitations
 - The processor clock is set to 25 MHz; timing slack indicates it could run at higher speeds (~60 MHz) but requires regeneration of UART clock divider constants.
@@ -54,7 +54,6 @@
 ## Unsupported Features
 - Misaligned memory accesses (e.g., `LW` or `SW` on odd or non-word-aligned addresses) are not supported. Addresses are truncated to alignment boundary.
 - Multiply/divide instructions (M extension) are not implemented yet.
-- Control Status Registers (CSRs) are not implemented yet.
 
 ## Technical Debt
 - Peripherals (UART, Performance Counters, Debug Unit) are decoded directly in the MEM stage rather than unified behind an internal peripheral bus.

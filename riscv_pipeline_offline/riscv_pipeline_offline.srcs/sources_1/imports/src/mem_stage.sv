@@ -1,16 +1,18 @@
 /*
  * Module: mem_stage
- * Description: Memory access stage. Supports SRAM, UART MMIO, and
- *              read-only performance-counter MMIO.
+ * Description: Memory access stage. Supports SRAM, UART MMIO,
+ *              performance-counter MMIO, timer MMIO, and CSR passthrough.
  *
  *   Address decode:
  *     0x0... -> data_mem          (word address = alu_result[11:2])
  *     0x8... -> uart_peripheral   (register select = alu_result[3:0])
- *     0xC... -> perf counters     (register select = alu_result[3:2])
+ *     0xC0000... -> perf counters  (register select = alu_result[3:2])
+ *     0xC0000200 -> timer         (register select = alu_result[3:0])
  *
  * Inputs: clk, rst, EX/MEM values and controls, perf counters, uart_rxd pin,
- *         dbg_dmem_addr
- * Outputs: MEM/WB candidate values and controls, uart_txd pin, dbg_dmem_data
+ *         dbg_dmem_addr, timer_mmio_read_data
+ * Outputs: MEM/WB candidate values and controls, uart_txd pin, dbg_dmem_data,
+ *          CSR passthrough signals
  */
 module mem_stage (
     input  logic        clk,
@@ -23,15 +25,25 @@ module mem_stage (
     input  logic        ex_mem_mem_read,
     input  logic        ex_mem_mem_write,
     input  logic        ex_mem_mem_to_reg,
+    input  logic        ex_mem_is_csr_inst,
+    input  logic        ex_mem_csr_write,
+    input  logic [31:0] ex_mem_csr_write_data,
+    input  logic [31:0] ex_mem_instr,
     output logic [31:0] mem_wb_alu_result_in,
     output logic [31:0] mem_wb_mem_read_data_in,
     output logic [4:0]  mem_wb_rd_in,
     output logic        mem_wb_reg_write_in,
     output logic        mem_wb_mem_to_reg_in,
+    output logic        mem_wb_is_csr_inst,
+    output logic        mem_wb_csr_write,
+    output logic [11:0] mem_wb_csr_addr,
+    output logic [31:0] mem_wb_csr_write_data,
     input  logic [31:0] perf_cycle_count,
     input  logic [31:0] perf_instr_count,
     input  logic [31:0] perf_stall_count,
     input  logic [31:0] perf_flush_count,
+    output logic [31:0] timer_read_data,
+    output logic        timer_irq,
     input  logic [31:0] debug_pc_current,
     input  logic [31:0] debug_last_commit_pc,
     input  logic [31:0] debug_last_commit_instr,
@@ -73,6 +85,7 @@ module mem_stage (
     logic        uart_sel;
     logic        perf_sel;
     logic        debug_sel;
+    logic        timer_sel;
     logic [31:0] perf_read_data;
     logic [31:0] debug_read_data;
 
@@ -85,11 +98,16 @@ module mem_stage (
     logic [2:0]  trace_count;
     integer      trace_index;
 
-    assign ram_sel  = (ex_mem_alu_result[31:28] == 4'h0);
-    assign uart_sel = (ex_mem_alu_result[31:28] == 4'h8);
-    assign perf_sel = (ex_mem_alu_result[31:28] == 4'hC);
+    assign ram_sel   = (ex_mem_alu_result[31:28] == 4'h0);
+    assign uart_sel  = (ex_mem_alu_result[31:28] == 4'h8);
+    assign perf_sel  = (ex_mem_alu_result[31:28] == 4'hC) && 
+                       (ex_mem_alu_result[9] == 1'b0) &&
+                       (ex_mem_alu_result[7:4] == 4'h0);
     assign debug_sel = (ex_mem_alu_result[31:28] == 4'hC) &&
+                       (ex_mem_alu_result[9] == 1'b0) &&
                        (ex_mem_alu_result[7:4] >= 4'h1);
+    assign timer_sel = (ex_mem_alu_result[31:28] == 4'hC) && 
+                       (ex_mem_alu_result[9] == 1'b1);
 
     // Gate RAM enable signals so MMIO does not touch data memory.
     logic ram_mem_read;
@@ -100,9 +118,6 @@ module mem_stage (
     // ------------------------------------------------------------------
     // Debug trace buffer
     // ------------------------------------------------------------------
-    // A tiny rotating history of recently committed instructions. Each entry
-    // stores the retired PC, instruction, writeback data, and a compact status
-    // word so the testbench can inspect execution history over MMIO.
     always_ff @(posedge clk) begin
         if (rst) begin
             trace_head  <= 2'd0;
@@ -279,6 +294,21 @@ module mem_stage (
     );
 
     // ------------------------------------------------------------------
+    // Timer peripheral (0xC0000200 region)
+    // ------------------------------------------------------------------
+    timer u_timer (
+        .clk        (clk),
+        .rst        (rst),
+        .timer_sel  (timer_sel),
+        .mem_read   (ex_mem_mem_read),
+        .mem_write  (ex_mem_mem_write),
+        .reg_addr   (ex_mem_alu_result[3:0]),
+        .write_data (ex_mem_rs2_data),
+        .read_data  (timer_read_data),
+        .timer_irq  (timer_irq)
+    );
+
+    // ------------------------------------------------------------------
     // Performance counter MMIO (read-only)
     // ------------------------------------------------------------------
     always_comb begin
@@ -361,11 +391,13 @@ module mem_stage (
     end
 
     // ------------------------------------------------------------------
-    // Read-data mux: select MMIO or SRAM based on address
+    // Read-data mux: select MMIO, timer, or SRAM based on address
     // ------------------------------------------------------------------
     always_comb begin
         mem_wb_mem_read_data_in = 32'd0;
-        if (debug_sel) begin
+        if (timer_sel) begin
+            mem_wb_mem_read_data_in = timer_read_data;
+        end else if (debug_sel) begin
             mem_wb_mem_read_data_in = debug_read_data;
         end else if (uart_sel) begin
             mem_wb_mem_read_data_in = uart_read_data;
@@ -381,6 +413,12 @@ module mem_stage (
     assign mem_wb_rd_in         = ex_mem_rd;
     assign mem_wb_reg_write_in  = ex_mem_reg_write;
     assign mem_wb_mem_to_reg_in = ex_mem_mem_to_reg;
+
+    // CSR passthrough to WB
+    assign mem_wb_is_csr_inst    = ex_mem_is_csr_inst;
+    assign mem_wb_csr_write      = ex_mem_csr_write;
+    assign mem_wb_csr_addr       = ex_mem_instr[31:20];
+    assign mem_wb_csr_write_data = ex_mem_csr_write_data;
 
     // Trace readback for UART monitor
     assign mon_trace_pc     = trace_pc[mon_trace_sel];

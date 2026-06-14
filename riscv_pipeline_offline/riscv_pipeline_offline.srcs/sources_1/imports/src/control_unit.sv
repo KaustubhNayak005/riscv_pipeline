@@ -1,11 +1,12 @@
 /*
  * Module: control_unit
  * Description: RV32I main decoder. Produces pipeline control signals,
- *              an ALU operation class, halt, and illegal-instruction flags
- *              from opcode/funct fields.
+ *              an ALU operation class, CSR/trap controls, halt, and
+ *              illegal-instruction flags from opcode/funct fields.
  * Inputs: opcode, funct3, funct7_bit5, instr[31:20] for SYSTEM decode
  * Outputs: reg_write, mem_read, mem_write, mem_to_reg, alu_src, branch, jump,
- *          alu_op, halt, illegal_instr
+ *          alu_op, halt, illegal_instr, csr_read, csr_write, mret, csr_imm_sel,
+ *          is_csr_inst
  */
 module control_unit (
     input  logic [6:0]  opcode,
@@ -21,7 +22,12 @@ module control_unit (
     output logic        jump,
     output logic [3:0]  alu_op,
     output logic        halt,
-    output logic        illegal_instr
+    output logic        illegal_instr,
+    output logic        csr_read,
+    output logic        csr_write,
+    output logic        mret,
+    output logic        csr_imm_sel,
+    output logic        is_csr_inst
 );
 
     localparam logic [6:0] OPCODE_RTYPE  = 7'b0110011;
@@ -41,6 +47,8 @@ module control_unit (
     localparam logic [3:0] ALU_OP_RTYPE  = 4'b0010;
     localparam logic [3:0] ALU_OP_ITYPE  = 4'b0011;
 
+    localparam logic [6:0] OPCODE_CSR = 7'b1110011;
+
     always_comb begin
         reg_write     = 1'b0;
         mem_read      = 1'b0;
@@ -52,6 +60,11 @@ module control_unit (
         alu_op        = ALU_OP_ADD;
         halt          = 1'b0;
         illegal_instr = 1'b0;
+        csr_read      = 1'b0;
+        csr_write     = 1'b0;
+        mret          = 1'b0;
+        csr_imm_sel   = 1'b0;
+        is_csr_inst   = 1'b0;
 
         unique case (opcode)
             OPCODE_RTYPE: begin
@@ -105,11 +118,29 @@ module control_unit (
 
             OPCODE_SYSTEM: begin
                 if (funct3 == 3'b000) begin
+                    // ECALL / EBREAK / MRET decode
                     case (funct12)
-                        12'h000: halt = 1'b1; // ECALL
-                        12'h001: halt = 1'b1; // EBREAK
+                        12'h000: halt = 1'b1;     // ECALL
+                        12'h001: halt = 1'b1;     // EBREAK
+                        12'h302: mret = 1'b1;     // MRET
                         default: illegal_instr = 1'b1;
                     endcase
+                end else if ((funct3 == 3'b001) || (funct3 == 3'b010) || 
+                             (funct3 == 3'b011) || (funct3 == 3'b101) || 
+                             (funct3 == 3'b110) || (funct3 == 3'b111)) begin
+                    // CSR instructions: CSRRW/CSRRS/CSRRC/CSRRWI/CSRRSI/CSRRCI
+                    is_csr_inst = 1'b1;
+                    reg_write   = 1'b1;
+                    alu_src     = 1'b1;
+                    alu_op      = ALU_OP_ADD;
+                    csr_read    = 1'b1;
+
+                    // funct3[2] = 1 means CSR immediate form
+                    csr_imm_sel = funct3[2];
+
+                    // CSR write enable for CSRRW, CSRRWI, CSRRS, CSRRSI, CSRRC, CSRRCI
+                    // CSRRW/CSRRWI always write, CSRRS/CSRRC conditionally write (rs1 != 0)
+                    csr_write   = 1'b1;
                 end else begin
                     illegal_instr = 1'b1;
                 end

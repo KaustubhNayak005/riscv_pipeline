@@ -3,11 +3,13 @@
  * Description: Top-level 32-bit 5-stage pipelined RV32I processor. Instantiates
  *              fetch, decode, execute, memory, write-back, pipeline registers,
  *              hazard detection, forwarding, instruction memory, data memory,
- *              and register file through their stage modules.
+ *              register file through their stage modules,
+ *              CSR file, and timer peripheral.
  *              UART pins are threaded through to mem_stage.
  *              Instruction-memory loader inputs are exposed for Phase 4.
  *              Performance counters: cycle, instruction, stall, flush.
  *              halt: asserted on ECALL/EBREAK, freezes the pipeline.
+ *              trap: trap entry redirects PC to mtvec, saves mepc/mcause.
  * Inputs: clk, rst, uart_rxd, instr_load_*, dbg_reg_addr, dbg_dmem_addr,
  *         dbg_trace_sel, cpu_reset_n
  * Outputs: debug trace, uart_txd, halt, dbg_reg_data, dbg_dmem_data,
@@ -70,6 +72,16 @@ module top (
     logic        id_alu_src;
     logic        id_branch;
     logic        id_jump;
+    logic        id_mret;
+    logic        id_is_csr_inst;
+    logic        id_csr_write;
+    logic        id_csr_imm_sel;
+    logic [31:0] id_csr_read_data;
+    logic        halt_id;
+    logic        illegal_id;
+    logic        trap_taken;
+    logic [31:0] trap_cause;
+    logic [31:0] trap_pc;
 
     logic [31:0] id_ex_pc;
     logic [31:0] id_ex_instr;
@@ -90,6 +102,11 @@ module top (
     logic        id_ex_branch;
     logic        id_ex_jump;
     logic        id_ex_valid;
+    logic        id_ex_mret;
+    logic        id_ex_is_csr_inst;
+    logic        id_ex_csr_write;
+    logic        id_ex_csr_imm_sel;
+    logic [31:0] id_ex_csr_read_data;
 
     logic [31:0] ex_alu_result;
     logic [31:0] ex_rs2_data;
@@ -101,6 +118,9 @@ module top (
     logic        ex_mem_read;
     logic        ex_mem_write;
     logic        ex_mem_to_reg;
+    logic        ex_is_csr_inst;
+    logic        ex_csr_write;
+    logic [31:0] ex_csr_write_data;
 
     logic [31:0] ex_mem_pc;
     logic [31:0] ex_mem_instr;
@@ -115,12 +135,19 @@ module top (
     logic        ex_mem_mem_write;
     logic        ex_mem_mem_to_reg;
     logic        ex_mem_valid;
+    logic        ex_mem_is_csr_inst;
+    logic        ex_mem_csr_write;
+    logic [31:0] ex_mem_csr_write_data;
 
     logic [31:0] mem_alu_result;
     logic [31:0] mem_read_data;
     logic [4:0]  mem_rd;
     logic        mem_reg_write;
     logic        mem_mem_to_reg;
+    logic        mem_is_csr_inst;
+    logic        mem_csr_write;
+    logic [11:0] mem_csr_addr;
+    logic [31:0] mem_csr_write_data;
 
     logic [31:0] mem_wb_pc;
     logic [31:0] mem_wb_instr;
@@ -130,6 +157,10 @@ module top (
     logic        mem_wb_reg_write;
     logic        mem_wb_mem_to_reg;
     logic        mem_wb_valid;
+    logic        mem_wb_is_csr_inst;
+    logic        mem_wb_csr_write;
+    logic [11:0] mem_wb_csr_addr;
+    logic [31:0] mem_wb_csr_write_data;
 
     logic [31:0] wb_write_data;
     logic [4:0]  wb_rd;
@@ -137,12 +168,16 @@ module top (
 
     logic        stall;
     logic        flush;
-    logic        halt_id;
-    logic        illegal_id;
+    logic        trap_flush;
+    logic        mret_exec;
     logic        halt_latched;
     logic        illegal_latched;
     logic        pc_sel;
+    logic        pc_sel_combined;
     logic [31:0] branch_target;
+    logic [31:0] mepc;
+    logic [31:0] mtvec;
+    logic        mie;
     logic [1:0]  forward_a;
     logic [1:0]  forward_b;
     logic [31:0] perf_cycle_count;
@@ -164,8 +199,35 @@ module top (
     logic       if_id_uses_rs2;
     logic       effective_stall;
 
-    assign flush = pc_sel;
-    assign effective_stall = stall || halt_latched;
+    // CSR file signals
+    logic [31:0] csr_read_data;
+    logic [11:0] csr_read_addr;
+    logic        csr_write_en;
+    logic [11:0] csr_write_addr;
+    logic [31:0] csr_write_data;
+
+    // Timer signals
+    logic [31:0] timer_read_data;
+    logic        timer_irq;
+
+    // Combined PC redirect: branch/jump, trap, MRET, or timer IRQ
+    // Timer IRQ is gated by MIE (machine interrupt enable)
+    logic        effective_timer_irq;
+    logic [31:0] if_branch_target;
+
+    assign effective_timer_irq = timer_irq && mie;
+    assign pc_sel_combined = pc_sel || trap_taken || mret_exec || effective_timer_irq;
+    assign if_branch_target = (trap_taken || effective_timer_irq) ? mtvec : branch_target;
+
+    // For trap with timer IRQ, capture the interrupt flag in mcause
+    logic [31:0] final_trap_cause;
+    logic [31:0] final_trap_pc;
+
+    assign final_trap_cause = timer_irq ? 32'h80000007 : trap_cause;
+    assign final_trap_pc    = timer_irq ? pc_current : trap_pc;
+
+    assign flush = pc_sel_combined;
+    assign effective_stall = stall;
 
     always_comb begin
         unique case (if_id_instr[6:0])
@@ -191,12 +253,35 @@ module top (
     assign if_id_rs1_for_hazard = if_id_uses_rs1 ? if_id_instr[19:15] : 5'd0;
     assign if_id_rs2_for_hazard = if_id_uses_rs2 ? if_id_instr[24:20] : 5'd0;
 
+    // =================================================================
+    // CSR File
+    // =================================================================
+    csr_file u_csr_file (
+        .clk            (clk),
+        .rst            (rst),
+        .csr_read_addr  (if_id_instr[31:20]),
+        .csr_read_data  (csr_read_data),
+        .csr_write_en   (csr_write_en),
+        .csr_write_addr (csr_write_addr),
+        .csr_write_data (csr_write_data),
+        .trap_taken     (trap_taken || effective_timer_irq),
+        .trap_cause     (final_trap_cause),
+        .trap_pc        (final_trap_pc),
+        .mret_exec      (id_mret),
+        .mepc           (mepc),
+        .mtvec          (mtvec),
+        .mie            (mie)
+    );
+
+    // =================================================================
+    // Pipeline
+    // =================================================================
     (* DONT_TOUCH = "yes" *) if_stage u_if_stage (
         .clk(clk),
         .rst(rst),
         .stall(effective_stall),
-        .pc_sel(pc_sel),
-        .branch_target(branch_target),
+        .pc_sel(pc_sel_combined),
+        .branch_target(if_branch_target),
         .instr_load_en(instr_load_en),
         .instr_load_word_addr(instr_load_word_addr),
         .instr_load_data(instr_load_data),
@@ -235,6 +320,7 @@ module top (
         .wb_reg_write(wb_reg_write),
         .wb_rd(wb_rd),
         .wb_write_data(wb_write_data),
+        .csr_read_data(csr_read_data),
         .id_ex_pc(id_pc),
         .id_ex_rs1_data(id_rs1_data),
         .id_ex_rs2_data(id_rs2_data),
@@ -252,8 +338,16 @@ module top (
         .id_ex_alu_src(id_alu_src),
         .id_ex_branch(id_branch),
         .id_ex_jump(id_jump),
+        .id_ex_mret(id_mret),
+        .id_ex_is_csr_inst(id_is_csr_inst),
+        .id_ex_csr_write(id_csr_write),
+        .id_ex_csr_imm_sel(id_csr_imm_sel),
+        .id_ex_csr_read_data(id_csr_read_data),
         .halt(halt_id),
         .illegal_instr(illegal_id),
+        .trap_taken(trap_taken),
+        .trap_cause(trap_cause),
+        .trap_pc(trap_pc),
         .dbg_reg_addr(dbg_reg_addr),
         .dbg_reg_data(dbg_reg_data)
     );
@@ -282,6 +376,11 @@ module top (
         .alu_src_in(id_alu_src),
         .branch_in(id_branch),
         .jump_in(id_jump),
+        .mret_in(id_mret),
+        .is_csr_inst_in(id_is_csr_inst),
+        .csr_write_in(id_csr_write),
+        .csr_imm_sel_in(id_csr_imm_sel),
+        .csr_read_data_in(id_csr_read_data),
         .pc_out(id_ex_pc),
         .instr_out(id_ex_instr),
         .rs1_data_out(id_ex_rs1_data),
@@ -300,7 +399,12 @@ module top (
         .alu_src_out(id_ex_alu_src),
         .branch_out(id_ex_branch),
         .jump_out(id_ex_jump),
-        .valid_out(id_ex_valid)
+        .valid_out(id_ex_valid),
+        .mret_out(id_ex_mret),
+        .is_csr_inst_out(id_ex_is_csr_inst),
+        .csr_write_out(id_ex_csr_write),
+        .csr_imm_sel_out(id_ex_csr_imm_sel),
+        .csr_read_data_out(id_ex_csr_read_data)
     );
 
     (* DONT_TOUCH = "yes" *) ex_stage u_ex_stage (
@@ -321,12 +425,19 @@ module top (
         .id_ex_alu_src(id_ex_alu_src),
         .id_ex_branch(id_ex_branch),
         .id_ex_jump(id_ex_jump),
+        .id_ex_mret(id_ex_mret),
+        .id_ex_is_csr_inst(id_ex_is_csr_inst),
+        .id_ex_csr_write(id_ex_csr_write),
+        .id_ex_csr_imm_sel(id_ex_csr_imm_sel),
+        .id_ex_csr_read_data(id_ex_csr_read_data),
         .ex_mem_alu_result(ex_mem_alu_result),
         .ex_mem_rd(ex_mem_rd),
         .ex_mem_reg_write(ex_mem_reg_write),
         .mem_wb_write_data(wb_write_data),
         .mem_wb_rd(mem_wb_rd),
         .mem_wb_reg_write(mem_wb_reg_write),
+        .mepc(mepc),
+        .mtvec(mtvec),
         .ex_mem_alu_result_in(ex_alu_result),
         .ex_mem_rs2_data_in(ex_rs2_data),
         .ex_mem_branch_target_in(ex_branch_target),
@@ -337,10 +448,15 @@ module top (
         .ex_mem_mem_read_in(ex_mem_read),
         .ex_mem_mem_write_in(ex_mem_write),
         .ex_mem_mem_to_reg_in(ex_mem_to_reg),
+        .ex_mem_is_csr_inst(ex_is_csr_inst),
+        .ex_mem_csr_write(ex_csr_write),
+        .ex_mem_csr_write_data(ex_csr_write_data),
         .forward_a(forward_a),
         .forward_b(forward_b),
         .pc_sel(pc_sel),
-        .branch_target(branch_target)
+        .branch_target(branch_target),
+        .trap_flush(trap_flush),
+        .mret_exec(mret_exec)
     );
 
     (* DONT_TOUCH = "yes" *) ex_mem_reg u_ex_mem_reg (
@@ -361,6 +477,9 @@ module top (
         .mem_read_in(ex_mem_read),
         .mem_write_in(ex_mem_write),
         .mem_to_reg_in(ex_mem_to_reg),
+        .is_csr_inst_in(ex_is_csr_inst),
+        .csr_write_in(ex_csr_write),
+        .csr_write_data_in(ex_csr_write_data),
         .pc_out(ex_mem_pc),
         .instr_out(ex_mem_instr),
         .alu_result_out(ex_mem_alu_result),
@@ -373,7 +492,10 @@ module top (
         .mem_read_out(ex_mem_mem_read),
         .mem_write_out(ex_mem_mem_write),
         .mem_to_reg_out(ex_mem_mem_to_reg),
-        .valid_out(ex_mem_valid)
+        .valid_out(ex_mem_valid),
+        .is_csr_inst_out(ex_mem_is_csr_inst),
+        .csr_write_out(ex_mem_csr_write),
+        .csr_write_data_out(ex_mem_csr_write_data)
     );
 
     (* DONT_TOUCH = "yes" *) mem_stage u_mem_stage (
@@ -387,11 +509,25 @@ module top (
         .ex_mem_mem_read        (ex_mem_mem_read),
         .ex_mem_mem_write       (ex_mem_mem_write),
         .ex_mem_mem_to_reg      (ex_mem_mem_to_reg),
+        .ex_mem_is_csr_inst     (ex_mem_is_csr_inst),
+        .ex_mem_csr_write       (ex_mem_csr_write),
+        .ex_mem_csr_write_data  (ex_mem_csr_write_data),
+        .ex_mem_instr           (ex_mem_instr),
         .mem_wb_alu_result_in   (mem_alu_result),
         .mem_wb_mem_read_data_in(mem_read_data),
         .mem_wb_rd_in           (mem_rd),
         .mem_wb_reg_write_in    (mem_reg_write),
         .mem_wb_mem_to_reg_in   (mem_mem_to_reg),
+        .mem_wb_is_csr_inst     (mem_is_csr_inst),
+        .mem_wb_csr_write       (mem_csr_write),
+        .mem_wb_csr_addr        (mem_csr_addr),
+        .mem_wb_csr_write_data  (mem_csr_write_data),
+        .perf_cycle_count       (perf_cycle_count),
+        .perf_instr_count       (perf_instr_count),
+        .perf_stall_count       (perf_stall_count),
+        .perf_flush_count       (perf_flush_count),
+        .timer_read_data        (timer_read_data),
+        .timer_irq              (timer_irq),
         .debug_pc_current       (pc_current),
         .debug_last_commit_pc   (debug_last_commit_pc),
         .debug_last_commit_instr(debug_last_commit_instr),
@@ -411,10 +547,6 @@ module top (
         .debug_commit_rd        (wb_rd),
         .debug_commit_reg_write (wb_reg_write),
         .debug_commit_wb_data   (wb_write_data),
-        .perf_cycle_count       (perf_cycle_count),
-        .perf_instr_count       (perf_instr_count),
-        .perf_stall_count       (perf_stall_count),
-        .perf_flush_count       (perf_flush_count),
         // UART pins threaded to peripheral
         .uart_rxd               (uart_rxd),
         .uart_txd               (uart_txd),
@@ -443,6 +575,10 @@ module top (
         .rd_in(mem_rd),
         .reg_write_in(mem_reg_write),
         .mem_to_reg_in(mem_mem_to_reg),
+        .is_csr_inst_in(mem_is_csr_inst),
+        .csr_write_in(mem_csr_write),
+        .csr_addr_in(mem_csr_addr),
+        .csr_write_data_in(mem_csr_write_data),
         .pc_out(mem_wb_pc),
         .instr_out(mem_wb_instr),
         .alu_result_out(mem_wb_alu_result),
@@ -450,7 +586,11 @@ module top (
         .rd_out(mem_wb_rd),
         .reg_write_out(mem_wb_reg_write),
         .mem_to_reg_out(mem_wb_mem_to_reg),
-        .valid_out(mem_wb_valid)
+        .valid_out(mem_wb_valid),
+        .is_csr_inst_out(mem_wb_is_csr_inst),
+        .csr_write_out(mem_wb_csr_write),
+        .csr_addr_out(mem_wb_csr_addr),
+        .csr_write_data_out(mem_wb_csr_write_data)
     );
 
     (* DONT_TOUCH = "yes" *) wb_stage u_wb_stage (
@@ -459,9 +599,16 @@ module top (
         .mem_wb_rd(mem_wb_rd),
         .mem_wb_reg_write(mem_wb_reg_write),
         .mem_wb_mem_to_reg(mem_wb_mem_to_reg),
+        .mem_wb_is_csr_inst(mem_wb_is_csr_inst),
+        .mem_wb_csr_write(mem_wb_csr_write),
+        .mem_wb_csr_addr(mem_wb_csr_addr),
+        .mem_wb_csr_write_data(mem_wb_csr_write_data),
         .wb_write_data(wb_write_data),
         .wb_rd(wb_rd),
-        .wb_reg_write(wb_reg_write)
+        .wb_reg_write(wb_reg_write),
+        .csr_write_en(csr_write_en),
+        .csr_addr(csr_write_addr),
+        .csr_write_data(csr_write_data)
     );
 
     assign debug_pc_current = pc_current;
@@ -477,8 +624,6 @@ module top (
     // =================================================================
     // Debug capture
     // =================================================================
-    // The debug block exposes the most recent retirement, the first faulting
-    // instruction, and a small trace of the last committed instructions.
     always_ff @(posedge clk) begin
         if (rst) begin
             debug_last_commit_pc     <= 32'd0;
@@ -505,7 +650,8 @@ module top (
     end
 
     // =================================================================
-    // Halt on ECALL/EBREAK
+    // Halt on ECALL/EBREAK (legacy: traps now handle ECALL/EBREAK)
+    // halt_latched is for board-level LED indication, not pipeline stall
     // =================================================================
     always_ff @(posedge clk) begin
         if (rst) begin
@@ -518,6 +664,9 @@ module top (
             if (illegal_id) begin
                 illegal_latched <= 1'b1;
             end
+            if (trap_taken || mret_exec) begin
+                halt_latched <= 1'b0;
+            end
         end
     end
 
@@ -526,12 +675,6 @@ module top (
     // =================================================================
     // Performance Counters
     // =================================================================
-    // Exposed as memory-mapped reads via mem_stage at 0xC0000000-0xC000000F:
-    //   0xC0000000 = perf_cycle_count    (total clock cycles since reset)
-    //   0xC0000004 = perf_instr_count    (committed instructions)
-    //   0xC0000008 = perf_stall_count    (load-use stall cycles)
-    //   0xC000000C = perf_flush_count    (branch/jump flush events)
-    // -----------------------------------------------------------------
     always_ff @(posedge clk) begin
         if (rst) begin
             perf_cycle_count <= 32'd0;
@@ -539,18 +682,14 @@ module top (
             perf_stall_count <= 32'd0;
             perf_flush_count <= 32'd0;
         end else begin
-            // Cycle counter: increments every clock cycle
             perf_cycle_count <= perf_cycle_count + 32'd1;
 
-            // Instruction counter: counts all retired non-bubble instructions.
             if (mem_wb_valid)
                 perf_instr_count <= perf_instr_count + 32'd1;
 
-            // Stall counter: counts cycles where a load-use stall is active
             if (stall)
                 perf_stall_count <= perf_stall_count + 32'd1;
 
-            // Flush counter: counts branch/jump flush events
             if (flush)
                 perf_flush_count <= perf_flush_count + 32'd1;
         end
