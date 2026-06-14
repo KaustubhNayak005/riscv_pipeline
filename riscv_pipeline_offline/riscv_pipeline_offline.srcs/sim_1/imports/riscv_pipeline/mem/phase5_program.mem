@@ -1,0 +1,46 @@
+// Phase 5 trap test program
+// Tests: ECALL trap, illegal instruction trap, simple trap handler with MRET
+//
+// Program flow:
+//   0x00: Initialize x1 = 0 (trap counter), x2 = handler address
+//   0x0C: Set mtvec = handler_addr
+//   0x10: ECALL → trap (mcause=11)
+//   0x14-0x1C: After MRET: store x1 to mem[0], x3=42 to mem[1]
+//   0x20: Illegal instruction → trap (mcause=2)  
+//   0x24-0x2C: After MRET: store x1 to mem[2]
+//   0x28: EBREAK → trap (mcause=3)
+//   0x2C-0x38: After MRET: store x1 to mem[3], store x1 to mem[4]
+//   0x40: Infinite loop (JAL x0, 0)
+//
+// Trap handler at 0x48:
+//   Read mepc, advance by 4, write back, increment x1, MRET
+00000093
+00000137
+04810113
+305110F3
+00000073
+00102023
+02A00193
+00302223
+00000000
+00102423
+00100073
+00102623
+00000013
+00000013
+00102823
+00000013
+0000006F
+00000013
+00000013
+00000013
+34102273
+00420213
+341210F3
+00108093
+30200073
+00000013
+00000013
+00000013
+00000013
+00000013

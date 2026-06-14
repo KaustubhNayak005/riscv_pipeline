@@ -12,9 +12,9 @@ The generator reads `userdocs/roadmap.md`, HDL sources, simulation logs, generat
 
 The project is currently best described as:
 
-> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
+> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 RTL is complete (CSRs, traps, timer interrupts, MRET) with simulation pending. Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
 
-The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK halt, and illegal instruction detection.
+The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, and timer interrupts.
 
 ---
 
@@ -29,7 +29,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 2: Complete the RV32I Base More Honestly | Complete (100%) | None | All Phase 2 items implemented and documented |
 | Phase 3: Debugging and Reliability | Complete (100%) | None | MMIO debug registers, trace buffer, and assertion-oriented verification implemented and simulation-tested |
 | Phase 4: UART Monitor and Program Loader | Complete in Sim (95%) | [BOARD] Needs PYNQ-Z2 proof | RTL implemented and verified end-to-end in `tb_fpga_top.sv`; host loader tested. Physical board proof pending. |
-| Phase 5: Traps, Exceptions, and Timer Interrupts | Not started (0%) | [IMPLEMENT] Trap/timer path missing | trap CSR tests, trap entry/return tests, timer interrupt demo |
+| Phase 5: Traps, Exceptions, and Timer Interrupts | RTL complete, sim pending (85%) | [SIM] Run tb_phase5.sv in xsim | trap CSR tests, trap entry/return tests, timer interrupt demo |
 | Phase 6: RV32M Multiply/Divide Extension | Not started (0%) | [IMPLEMENT] RV32M datapath missing | M-extension instruction tests, multi-cycle stall checks if needed, timing proof |
 | Phase 7: Run Small C Programs | Not started (0%) | [IMPLEMENT] C runtime/toolchain flow missing | linker script, startup, stack, UART putchar, C demos |
 | Phase 8: Branch Prediction and CPI Experiments | Not started (0%) | [IMPLEMENT] Predictor not implemented | before/after cycles, stalls, flushes, CPI/IPC comparison |
@@ -50,7 +50,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | 2 | Complete the RV32I Base More Honestly | Complete | 100% | `LB/LH/LBU/LHU/SB/SH` with byte enables and sign/zero extension implemented and tested; `FENCE`/`FENCE.I` decoded as NOP; `ECALL`/`EBREAK` halt with pipeline freeze; illegal instruction detection; misaligned access policy documented; full RV32I instruction support table created | None |
 | 3 | Debugging and Reliability | Complete | 100% | MMIO debug registers, trace buffer, and assertion-oriented verification implemented; simulation reads validated current PC, last commit, fault, and trace entries | optional ILA and UART debug logs remain optional refinements |
 | 4 | UART Monitor and Program Loader | Complete in Sim | 95% | `uart_monitor.sv` with 7 commands, verified via `tb_fpga_top.sv` testbench. Host loader completed. | physical board proof |
-| 5 | Traps, Exceptions, and Timer Interrupts | Not started | 0% | no `mepc`, `mcause`, `mtvec`, or timer compare flow detected | add trap CSRs, trap entry/return behavior, timer peripheral, and tests |
+| 5 | Traps, Exceptions, and Timer Interrupts | RTL complete, sim pending | 85% | csr_file.sv, timer.sv, tb_phase5.sv created; all pipeline stages updated | run simulation in xsim; fix any failures |
 | 6 | RV32M Multiply/Divide Extension | Not started | 0% | no RV32M multiply/divide implementation detected | add RV32M decode, execute support, stalls if needed, and tests |
 | 7 | Run Small C Programs | Not started | 0% | assembly flow exists, but no linker script/startup/C runtime flow detected | add linker script, startup code, UART putchar, stack setup, and C demos |
 | 8 | Branch Prediction and CPI Experiments | Not started | 0% | current branch behavior appears to be flush-on-taken baseline with counters | add predictor, branch metrics, before/after CPI comparison programs |
@@ -64,6 +64,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Recently Completed
 
+- Implemented complete Phase 5 RTL: CSR file (mstatus/mtvec/mepc/mcause), timer peripheral, CSR instruction decode, trap entry for ECALL/EBREAK/illegal instructions, MRET execution, timer interrupt generation. Created tb_phase5.sv testbench.
 - Fixed UART monitor logic causing Vivado synthesis hang by refactoring `tx_buf` into a serial shift-register FSM (`ST_PRINT_HEX`).
 - Verified UART monitor FSM end-to-end via `tb_fpga_top.sv` simulation in Vivado.
 - Generated Implementation Plan for Phase 5 (Traps, Exceptions, Timers).

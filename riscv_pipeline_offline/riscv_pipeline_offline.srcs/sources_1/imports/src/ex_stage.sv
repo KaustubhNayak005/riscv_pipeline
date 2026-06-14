@@ -1,9 +1,12 @@
 /*
  * Module: ex_stage
  * Description: Execute stage with operand forwarding, ALU operation, branch
- *              condition evaluation, and jump target generation.
- * Inputs: ID/EX values, EX/MEM forwarding source, MEM/WB forwarding source
- * Outputs: EX/MEM candidate values, branch redirect, forwarding selects
+ *              condition evaluation, jump target generation, and CSR write
+ *              data computation.
+ * Inputs: ID/EX values, EX/MEM forwarding source, MEM/WB forwarding source,
+ *         mepc, mtvec for trap/MRET handling
+ * Outputs: EX/MEM candidate values, branch redirect, forwarding selects,
+ *          CSR write data
  */
 module ex_stage (
     input  logic [31:0] id_ex_pc,
@@ -23,12 +26,19 @@ module ex_stage (
     input  logic        id_ex_alu_src,
     input  logic        id_ex_branch,
     input  logic        id_ex_jump,
+    input  logic        id_ex_mret,
+    input  logic        id_ex_is_csr_inst,
+    input  logic        id_ex_csr_write,
+    input  logic        id_ex_csr_imm_sel,
+    input  logic [31:0] id_ex_csr_read_data,
     input  logic [31:0] ex_mem_alu_result,
     input  logic [4:0]  ex_mem_rd,
     input  logic        ex_mem_reg_write,
     input  logic [31:0] mem_wb_write_data,
     input  logic [4:0]  mem_wb_rd,
     input  logic        mem_wb_reg_write,
+    input  logic [31:0] mepc,
+    input  logic [31:0] mtvec,
     output logic [31:0] ex_mem_alu_result_in,
     output logic [31:0] ex_mem_rs2_data_in,
     output logic [31:0] ex_mem_branch_target_in,
@@ -39,10 +49,15 @@ module ex_stage (
     output logic        ex_mem_mem_read_in,
     output logic        ex_mem_mem_write_in,
     output logic        ex_mem_mem_to_reg_in,
+    output logic        ex_mem_is_csr_inst,
+    output logic        ex_mem_csr_write,
+    output logic [31:0] ex_mem_csr_write_data,
     output logic [1:0]  forward_a,
     output logic [1:0]  forward_b,
     output logic        pc_sel,
-    output logic [31:0] branch_target
+    output logic [31:0] branch_target,
+    output logic        trap_flush,
+    output logic        mret_exec
 );
 
     localparam logic [6:0] OPCODE_BRANCH = 7'b1100011;
@@ -57,6 +72,7 @@ module ex_stage (
     logic [31:0] alu_result_raw;
     logic        alu_zero;
     logic        branch_condition_met;
+    logic [31:0] csr_write_data_raw;
 
     forwarding_unit u_forwarding_unit (
         .ex_mem_rd(ex_mem_rd),
@@ -106,16 +122,29 @@ module ex_stage (
     end
 
     always_comb begin
+        // Default jump/branch target
         ex_mem_branch_target_in = id_ex_pc + id_ex_imm;
 
         if (id_ex_opcode == OPCODE_JALR) begin
             ex_mem_branch_target_in = (operand_a_forwarded + id_ex_imm) & 32'hFFFF_FFFE;
         end
 
-        ex_mem_branch_taken_in = (id_ex_branch && branch_condition_met) || id_ex_jump;
-        pc_sel = ex_mem_branch_taken_in;
-        branch_target = ex_mem_branch_target_in;
+        // MRET: jump to mepc
+        if (id_ex_mret) begin
+            ex_mem_branch_taken_in = 1'b1;
+            pc_sel = 1'b1;
+            branch_target = mepc;
+            mret_exec = 1'b1;
+            trap_flush = 1'b0;
+        end else begin
+            ex_mem_branch_taken_in = (id_ex_branch && branch_condition_met) || id_ex_jump;
+            pc_sel = ex_mem_branch_taken_in;
+            branch_target = ex_mem_branch_target_in;
+            mret_exec = 1'b0;
+            trap_flush = 1'b0;
+        end
 
+        // ALU result selection
         unique case (id_ex_opcode)
             OPCODE_LUI:   ex_mem_alu_result_in = id_ex_imm;
             OPCODE_AUIPC: ex_mem_alu_result_in = id_ex_pc + id_ex_imm;
@@ -123,6 +152,12 @@ module ex_stage (
             OPCODE_JALR:  ex_mem_alu_result_in = id_ex_pc + 32'd4;
             default:      ex_mem_alu_result_in = alu_result_raw;
         endcase
+
+        // For CSR instructions, the ALU result is the CSR read value
+        // (which passes through to the WB stage as writeback data)
+        if (id_ex_is_csr_inst) begin
+            ex_mem_alu_result_in = id_ex_csr_read_data;
+        end
 
         ex_mem_rs2_data_in   = operand_b_forwarded;
         ex_mem_rd_in         = id_ex_rd;
@@ -132,5 +167,24 @@ module ex_stage (
         ex_mem_mem_write_in  = id_ex_mem_write;
         ex_mem_mem_to_reg_in = id_ex_mem_to_reg;
     end
+
+    // CSR write data computation
+    // funct3[2] = csr_imm_sel: 0 = rs1, 1 = zero-extended 5-bit immediate
+    // funct3[1:0]: 01 = CSRRW, 10 = CSRRS, 11 = CSRRC
+    always_comb begin
+        logic [31:0] rs1_operand;
+        rs1_operand = id_ex_csr_imm_sel ? {27'd0, id_ex_rs1} : operand_a_forwarded;
+
+        unique case (id_ex_funct3[1:0])
+            2'b01: csr_write_data_raw = rs1_operand;                              // CSRRW / CSRRWI
+            2'b10: csr_write_data_raw = id_ex_csr_read_data | rs1_operand;        // CSRRS / CSRRSI
+            2'b11: csr_write_data_raw = id_ex_csr_read_data & ~rs1_operand;       // CSRRC / CSRRCI
+            default: csr_write_data_raw = 32'd0;
+        endcase
+    end
+
+    assign ex_mem_csr_write_data = csr_write_data_raw;
+    assign ex_mem_is_csr_inst    = id_ex_is_csr_inst;
+    assign ex_mem_csr_write      = id_ex_csr_write;
 
 endmodule
