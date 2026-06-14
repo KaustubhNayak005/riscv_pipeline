@@ -214,10 +214,14 @@ module top (
     // Timer IRQ is gated by MIE (machine interrupt enable)
     logic        effective_timer_irq;
     logic [31:0] if_branch_target;
+    logic        id_trap_valid;
+
+    // A trap in ID is only valid if an older instruction in EX is not flushing it!
+    assign id_trap_valid = trap_taken && !pc_sel && !mret_exec;
 
     assign effective_timer_irq = timer_irq && mie;
-    assign pc_sel_combined = pc_sel || trap_taken || mret_exec || effective_timer_irq;
-    assign if_branch_target = (trap_taken || effective_timer_irq) ? mtvec : branch_target;
+    assign pc_sel_combined = pc_sel || id_trap_valid || mret_exec || effective_timer_irq;
+    assign if_branch_target = (id_trap_valid || effective_timer_irq) ? mtvec : branch_target;
 
     // For trap with timer IRQ, capture the interrupt flag in mcause
     logic [31:0] final_trap_cause;
@@ -264,7 +268,7 @@ module top (
         .csr_write_en   (csr_write_en),
         .csr_write_addr (csr_write_addr),
         .csr_write_data (csr_write_data),
-        .trap_taken     (trap_taken || effective_timer_irq),
+        .trap_taken     (id_trap_valid || effective_timer_irq),
         .trap_cause     (final_trap_cause),
         .trap_pc        (final_trap_pc),
         .mret_exec      (id_mret),
@@ -658,13 +662,13 @@ module top (
             halt_latched <= 1'b0;
             illegal_latched <= 1'b0;
         end else begin
-            if (halt_id || illegal_id) begin
+            if ((halt_id || illegal_id) && !pc_sel && !mret_exec) begin
                 halt_latched <= 1'b1;
             end
-            if (illegal_id) begin
+            if (illegal_id && !pc_sel && !mret_exec) begin
                 illegal_latched <= 1'b1;
             end
-            if (trap_taken || mret_exec) begin
+            if (id_trap_valid || mret_exec) begin
                 halt_latched <= 1'b0;
             end
         end
