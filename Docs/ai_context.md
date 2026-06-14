@@ -85,13 +85,14 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 - **Phase 1 (Reproducible Software):** Mostly complete. Assembler, build script, and `program.mem` generation are in place.
 - **Phase 2 (RV32I Base):** Complete. Full subword memory ops, FENCE/NOP, ECALL halt, and illegal instruction detection are implemented and tested.
 - **Phase 3 (Debugging & Reliability):** Complete. MMIO debug registers, a 4-entry commit trace buffer, and assertion-oriented simulation checks are implemented and tested.
-- **Phase 4:** Substantially complete (RTL done, simulation verified, board-ready). The UART monitor (`uart_monitor.sv`) FSM was completely rewritten to fix a massive combinatorial synthesis hang and mathematically verified end-to-end in simulation using `tb_fpga_top.sv`. Bitstream generation succeeded.
-- **Phase 5 (Traps, Exceptions, Timers):** Complete in Simulation. CSR file (`csr_file.sv`) with mstatus/mtvec/mepc/mcause, timer peripheral (`timer.sv`) at 0xC0000200, CSR instruction decode (CSRRW/CSRRS/CSRRC/CSRRWI/CSRRSI/CSRRCI), MRET execution, ECALL/EBREAK/illegal-instruction trap entry, timer interrupt generation. Testbench `tb_phase5.sv` passes all tests.
-- **Phase 6 (RV32M Multiply Extension):** Complete in Simulation. `MUL`, `MULH`, `MULHSU`, `MULHU` implemented with a single-cycle DSP multiplier in `alu.sv`. Testbench `tb_phase6.sv` verified all MUL instructions successfully.
+- **Phase 4:** Substantially complete. UART monitor (`uart_monitor.sv`) FSM rewritten and mathematically verified end-to-end. Bitstream generation succeeded.
+- **Phase 5 (Traps, Exceptions, Timers):** Complete in Simulation. CSR file with mstatus/mtvec/mepc/mcause, timer peripheral, trap entry, MRET execution, timer interrupt generation.
+- **Phase 6 (RV32M Multiply Extension):** Complete in Simulation. `MUL`, `MULH`, `MULHSU`, `MULHU` implemented with a single-cycle DSP multiplier in `alu.sv`.
+- **Phase 7 (Run Small C Programs):** Complete in Simulation. C software infrastructure (`linker.ld`, `crt0.S`, `Makefile`), UART library, and stack-allocated "Hello World" demo compiled using xPack RISC-V GCC and simulated live in Vivado.
 
 ## 🎯 Next Priorities (For the Next Agent)
-1. **Phase 7 - Run Small C Programs:** Build the C toolchain flow, create a linker script, startup code, and compile simple C demos.
-3. **Board Arrival Checklist:** Once the board is acquired, immediately execute `Docs/planning/board_arrival_checklist.md` to validate the hardware baseline and physical UART loader.
+1. **Phase 8 - Branch Prediction & CPI Experiments:** Add branch predictor, branch metrics, and compare CPI using benchmarks.
+2. **Board Arrival Checklist:** Once the board is acquired, immediately execute `Docs/planning/board_arrival_checklist.md`.
 
 ## 📁 Key Documentation References
 - [`Docs/GETTING_STARTED.md`](./GETTING_STARTED.md): **User guide for the project owner.** Prompt template, folder structure, roadmap summary, troubleshooting.
@@ -138,6 +139,8 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 | `Docs/updates/README.md` | Index of all session logs. Append a link after every session. | ✅ Live | 2026-06-04 |
 
 ## 📝 Recent AI Updates
+- **2026-06-14**: Completed Phase 7 (Run Small C Programs). Installed the xPack RISC-V GCC toolchain. Implemented bare-metal C software infrastructure including `sw/linker.ld`, `sw/crt0.S`, `sw/lib/uart.c`, and `sw/Makefile`. Successfully compiled a "Hello World" application that uses stack-allocated arrays to bypass the Harvard architecture read-only data limitations. Verified the generated `.mem` live in Vivado.
+- **2026-06-14**: Analyzed project documentation to determine the next step. Confirmed that Phases 1-6 are fully implemented and verified in simulation, and hardware verification is deferred until the PYNQ-Z2 board arrives. Concluded that the next immediate priority is **Phase 7: Run Small C Programs**.
 - **2026-06-14**: Verified Phase 6 RTL (RV32M Multiply Extension) using `tb_phase6.sv`. All `MUL` family tests (`MUL`, `MULH`, `MULHSU`, `MULHU`) passed seamlessly in simulation on the first run. Phase 6 is complete in simulation.
 - **2026-06-14**: Debugged and fixed Phase 5 simulation failures in `tb_phase5.sv`. Resolved Timer interrupt logic, forced proper 32-bit `mtimecmp` values, enabled the timer `ctrl` register, and padded the test payload with `jal x0, 0` to prevent safely asynchronous trap returns from tumbling into zeroes and triggering infinite illegal instruction traps. Phase 5 is now fully verified in simulation.
 - **2026-06-14**: Implemented Phase 5 RTL (Traps, Exceptions, Timer Interrupts). Created csr_file.sv (mstatus/mtvec/mepc/mcause), timer.sv (0xC0000200), tb_phase5.sv. Updated 7 existing source files for CSR decode, trap entry, MRET execution, and timer MMIO. Phase 5 RTL is complete; simulation pending.`n- **2026-06-13**: Identified and fixed a major hardware anti-pattern in `uart_monitor.sv` (multiple array writes per cycle causing a massive MUX network that hung Vivado synthesis). Rewrote the FSM to use a strict single-write-per-cycle shift register. Created `tb_fpga_top.sv` and fully verified the monitor end-to-end in xsim. Generated the Phase 5 Implementation Plan.

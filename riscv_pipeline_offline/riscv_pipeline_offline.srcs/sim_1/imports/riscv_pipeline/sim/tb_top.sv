@@ -251,9 +251,6 @@ module tb_top;
     // ---------------------------------------------------------------
     localparam int UART_TIMEOUT_CYCLES = 10000;
 
-    localparam real BIT_PERIOD_NS = 2170.0;
-    localparam real HALF_BIT_NS   = BIT_PERIOD_NS / 2.0;
-
     task automatic uart_wait_next_byte(output logic [7:0] got,
                                        input  string      label);
         int timeout;
