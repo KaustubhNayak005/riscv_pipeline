@@ -208,6 +208,10 @@ Full exception-on-misaligned requires trap CSR infrastructure (Phase 5). In the 
 | `FENCE.I` | I | Implemented | Decoded as NOP |
 | `ECALL` | I | Implemented | Halts the pipeline |
 | `EBREAK` | I | Implemented | Halts the pipeline |
+| `MUL` | R | Implemented | RV32M Extension |
+| `MULH` | R | Implemented | RV32M Extension |
+| `MULHSU` | R | Implemented | RV32M Extension |
+| `MULHU` | R | Implemented | RV32M Extension |
 
 ### Intentionally Unsupported
 
@@ -216,7 +220,7 @@ Full exception-on-misaligned requires trap CSR infrastructure (Phase 5). In the 
 | `CSRRW`, `CSRRS`, `CSRRC`, `CSRRWI`, `CSRRSI`, `CSRRCI` | CSR infrastructure not implemented yet (Phase 5) |
 | `MRET`, `SRET`, `URET` | Trap return not implemented yet (Phase 5) |
 | `WFI` | Not applicable to this bare-metal design |
-| `MUL`, `MULH`, `MULHU`, `MULHSU`, `DIV`, `DIVU`, `REM`, `REMU` | RV32M not implemented yet (Phase 6) |
+| `DIV`, `DIVU`, `REM`, `REMU` | RV32M division not implemented yet |
 
 ---
 
@@ -227,7 +231,7 @@ Full exception-on-misaligned requires trap CSR infrastructure (Phase 5). In the 
 | UART monitor / loader | Detected: `uart_monitor.sv` with 7 commands (help/load/run/reset/regs/mem/perf/trace) |
 | Minimal traps / exceptions | Not detected |
 | Timer interrupt flow | Not detected |
-| RV32M multiply/divide | Not detected |
+| RV32M multiply/divide | Multiply detected; divide not detected |
 | Misaligned load/store exception support | Not detected (documented policy above) |
 | Branch predictor | Not detected |
 | Packed-SIMD extension | Not detected |
