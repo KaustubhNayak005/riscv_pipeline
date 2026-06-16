@@ -12,9 +12,9 @@ The generator reads `userdocs/roadmap.md`, HDL sources, simulation logs, generat
 
 The project is currently best described as:
 
-> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
+> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 RTL is complete. Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
 
-The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, and timer interrupts.
+The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, and a 64-entry BHT dynamic branch predictor.
 
 ---
 
@@ -32,7 +32,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 5: Traps, Exceptions, and Timer Interrupts | Complete (100%) | [SIM] Run tb_phase5.sv in xsim | trap CSR tests, trap entry/return tests, timer interrupt demo |
 | Phase 6: RV32M Multiply Extension | Complete (100%) | [BOARD] Needs PYNQ-Z2 proof | MUL family tests via tb_phase6.sv verified in simulation |
 | Phase 7: Run Small C Programs | Complete (100%) | None | C runtime, linker script, and "Hello World" program validated in simulation over UART. |
-| Phase 8: Branch Prediction and CPI Experiments | Not started (0%) | [IMPLEMENT] Predictor not implemented | before/after cycles, stalls, flushes, CPI/IPC comparison |
+| Phase 8: Branch Prediction and CPI Experiments | Complete in RTL (90%) | [SIM] Run simulations | before/after cycles, stalls, flushes, CPI/IPC comparison |
 | Phase 9: Custom Packed-SIMD Extension | Not started (0%) | [IMPLEMENT] Packed-SIMD not implemented | custom opcode tests, byte-lane kernel demo, speedup report |
 | Phase 10: Real Workloads and Benchmark Demos | Not started (0%) | [VERIFY] Workload proof missing | measurable cycle/instruction/stall/flush/CPI/speedup report |
 | Phase 11: Memory System and Bus Cleanup | Partial foundation only (15%) | [IMPLEMENT] Bus cleanup pending | memory-map regression tests and peripheral access proof |
@@ -53,7 +53,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | 5 | Traps, Exceptions, and Timer Interrupts | Complete | 100% | csr_file.sv, timer.sv, tb_phase5.sv created; all pipeline stages updated | None |
 | 6 | RV32M Multiply Extension | Complete | 100% | MUL family RTL implemented, tb_phase6.sv simulation passed | add DIV/DIVU/REM/REMU later if needed |
 | 7 | Run Small C Programs | Complete | 100% | linker script, startup, C runtime flow, and C demos implemented/verified | None |
-| 8 | Branch Prediction and CPI Experiments | Not started | 0% | current branch behavior appears to be flush-on-taken baseline with counters | add predictor, branch metrics, before/after CPI comparison programs |
+| 8 | Branch Prediction and CPI Experiments | Complete in RTL | 90% | Static (BTFNT) and Dynamic (64-entry BHT) predictors implemented and wired; bubble sort C benchmark generated | capture simulation metrics |
 | 9 | Custom Packed-SIMD Extension | Not started | 0% | no packed-SIMD custom opcode implementation detected | add PADD8/PSUB8-style custom instructions, tests, and data-parallel demo |
 | 10 | Real Workloads and Benchmark Demos | Not started | 0% | no dedicated benchmark report/workload suite detected | add measurable demos with cycle/CPI/speedup reporting |
 | 11 | Memory System and Bus Cleanup | Partial foundation only | 15% | simple MMIO decode exists for UART/perf counters; byte enables exist for RAM | define a cleaner internal bus and move peripherals behind it |
@@ -64,6 +64,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Recently Completed
 
+- [2026-06-16] **Phase 8**: Created `benchmark.c` (Bubble sort) to measure CPI. Implemented Static BTFNT prediction and optimized pipeline flush logic. Implemented Dynamic Branch Prediction via a 64-entry BHT (Branch History Table) with 2-bit saturating counters in `bht.sv`. Wired `id_stage.sv` to predictively fetch branches and `ex_stage.sv` to train the BHT and flush only on mispredictions.
 - [2026-06-14] **Phase 7**: Installed xPack RISC-V GCC toolchain. Created C software infrastructure (`linker.ld`, `crt0.S`, `sw/Makefile`). Implemented `hello_world.c` using stack-based string building to support the strict Harvard architecture memory mapping. Verified simulation live in Vivado.
 - [2026-06-14] **Phase 5/6 review**: Validated CSRs, Traps, and Performance Counters.
 - [2026-06-04] **Phase 6**: Integrated system with `uart_monitor.sv` and fully verified trace and performance outputs using UART loader script.on via `tb_phase6.sv`. All `MUL`, `MULH`, `MULHSU`, and `MULHU` tests passed perfectly. Phase 6 is Complete in simulation.
@@ -101,10 +102,11 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Current Next Step
 
-Phase 4 RTL is complete and verified in simulation. The next step is:
+Phase 8 RTL is complete. The next steps are:
 
-1. Begin Phase 7: Run Small C Programs. Build the C toolchain flow, create a linker script, startup code, `putchar` for UART, and compile simple C demos.
-2. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
+1. Run the Phase 8 bubble sort benchmark in Vivado simulation to extract branch prediction metrics (cycles, flushes, CPI) and compare improvements.
+2. Begin Phase 9: Custom Packed-SIMD Extension. Add PADD8/PSUB8 style custom instructions and run a data-parallel demo.
+3. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
 
 ---
 
@@ -235,72 +237,7 @@ This checklist contains all the deferred hardware-verification tasks. **As soon 
 ### 2. Phase 4: The Monitor & Loader Proof
 
 
----
 
-## Phase Completion Table
-
-| Phase | Roadmap Area | Status | Completion | Evidence | Remaining Work |
-|-------|--------------|--------|------------|----------|----------------|
-| 0 | Baseline Polish and Hardware Demo | Partial / deferred | 50% | bitstream exists; routed timing WNS about `+5.556 ns`; UART pins are constrained | real PYNQ-Z2 UART terminal proof, terminal log/video, final hardware setup notes |
-| 1 | Reproducible Software and Test Tooling | Mostly complete | 80% | `asm/demo_perf_uart.s`, assembler, build script, generated `program.mem`; detected 240 memory words | add more standalone test programs and expected UART output files |
-| 2 | Complete the RV32I Base More Honestly | Complete | 100% | `LB/LH/LBU/LHU/SB/SH` with byte enables and sign/zero extension implemented and tested; `FENCE`/`FENCE.I` decoded as NOP; `ECALL`/`EBREAK` halt with pipeline freeze; illegal instruction detection; misaligned access policy documented; full RV32I instruction support table created | None |
-| 3 | Debugging and Reliability | Complete | 100% | MMIO debug registers, trace buffer, and assertion-oriented verification implemented; simulation reads validated current PC, last commit, fault, and trace entries | optional ILA and UART debug logs remain optional refinements |
-| 4 | UART Monitor and Program Loader | Complete in Sim | 95% | `uart_monitor.sv` with 7 commands, verified via `tb_fpga_top.sv` testbench. Host loader completed. | physical board proof |
-| 5 | Traps, Exceptions, and Timer Interrupts | Complete | 100% | csr_file.sv, timer.sv, tb_phase5.sv created; all pipeline stages updated | None |
-| 6 | RV32M Multiply Extension | Complete | 100% | MUL family RTL implemented, tb_phase6.sv simulation passed | add DIV/DIVU/REM/REMU later if needed |
-| 7 | Run Small C Programs | Complete | 100% | linker script, startup, C runtime flow, and C demos implemented/verified | None |
-| 8 | Branch Prediction and CPI Experiments | Not started | 0% | current branch behavior appears to be flush-on-taken baseline with counters | add predictor, branch metrics, before/after CPI comparison programs |
-| 9 | Custom Packed-SIMD Extension | Not started | 0% | no packed-SIMD custom opcode implementation detected | add PADD8/PSUB8-style custom instructions, tests, and data-parallel demo |
-| 10 | Real Workloads and Benchmark Demos | Not started | 0% | no dedicated benchmark report/workload suite detected | add measurable demos with cycle/CPI/speedup reporting |
-| 11 | Memory System and Bus Cleanup | Partial foundation only | 15% | simple MMIO decode exists for UART/perf counters; byte enables exist for RAM | define a cleaner internal bus and move peripherals behind it |
-| 12 | Optional Peripherals | Not started | 0% | GPIO-style board LEDs exist in `fpga_top`, but no new roadmap peripheral detected | add optional GPIO/button/PWM/SPI/display peripheral if useful |
-| 13 | Dual-Core SoC Extension | Not started | 0% | roadmap section exists; no dual-core RTL detected | implement only after bus/monitor/trap/software work |
-
----
-
-## Recently Completed
-
-- [2026-06-14] **Phase 7**: Installed xPack RISC-V GCC toolchain. Created C software infrastructure (`linker.ld`, `crt0.S`, `sw/Makefile`). Implemented `hello_world.c` using stack-based string building to support the strict Harvard architecture memory mapping. Verified simulation live in Vivado.
-- [2026-06-14] **Phase 5/6 review**: Validated CSRs, Traps, and Performance Counters.
-- [2026-06-04] **Phase 6**: Integrated system with `uart_monitor.sv` and fully verified trace and performance outputs using UART loader script.on via `tb_phase6.sv`. All `MUL`, `MULH`, `MULHSU`, and `MULHU` tests passed perfectly. Phase 6 is Complete in simulation.
-- Debugged and fixed Phase 5 simulation failures. Resolved Timer interrupt logic, forced proper 32-bit `mtimecmp` values, enabled the timer `ctrl` register, padded the test payload with `jal x0, 0` for safe asynchronous trap returns, and achieved full `tb_phase5.sv` simulation pass. Phase 5 is Complete in simulation.
-- Implemented complete Phase 5 RTL: CSR file (mstatus/mtvec/mepc/mcause), timer peripheral, CSR instruction decode, trap entry for ECALL/EBREAK/illegal instructions, MRET execution, timer interrupt generation. Created tb_phase5.sv testbench.
-- Fixed UART monitor logic causing Vivado synthesis hang by refactoring `tx_buf` into a serial shift-register FSM (`ST_PRINT_HEX`).
-- Verified UART monitor FSM end-to-end via `tb_fpga_top.sv` simulation in Vivado.
-- Generated Implementation Plan for Phase 5 (Traps, Exceptions, Timers).
-- Added DS srijith, Raunit kapoor, and Hemanth v as contributors in `Docs/planning/ownership.md`.
-- Created `Docs/GETTING_STARTED.md` — comprehensive user guide for project owner with prompt template, folder structure, roadmap summary, and troubleshooting.
-- Enforced mandatory documentation update system: initialized git repo, installed pre-commit/post-commit/pre-push hooks with `check_docs_stale.ps1`, hardened `ai_context.md` with PRE-EXIT MANDATORY CHECKLIST and inline session log template, added `.gitignore` for Vivado artifacts.
-- Added readable assembly source for the current demo/regression ROM.
-- Added a local RV32I assembler and build script for generating `program.mem`.
-- Generated ROM initialization include from assembly.
-- Implemented and simulated subword memory operations: `LB`, `LH`, `LBU`, `LHU`, `SB`, `SH`.
-- Added simulation checks for subword load/store behavior.
-- Implemented MMIO debug registers for current PC, last committed PC/instruction, last writeback data, fault PC/instruction, and pipeline status.
-- Added a 4-entry commit trace buffer and simulation reads for the latest retire history.
-- Added assertion-style simulation checks for the debug MMIO window and trace buffer contents.
-- Reworked the roadmap so dual-core is a later long-term optional goal after bus, traps, and software support.
-- Added minimal `FENCE` / `FENCE.I` handling as NOP in `control_unit.sv`.
-- Implemented `ECALL` / `EBREAK` decode via `OPCODE_SYSTEM` with halt signal that freezes the pipeline.
-- Added illegal instruction detection for unknown opcodes, triggering halt same as ECALL/EBREAK.
-- Documented misaligned load/store access policy (unsupported; requires trap CSRs from Phase 5).
-- Created full RV32I instruction support table listing implemented, tested, and intentionally unsupported instructions.
-- Implemented full Phase 4 UART monitor: `uart_monitor.sv` with 7 commands (help/load/run/reset/regs/mem/perf/trace) wired through `fpga_top.sv`.
-- Added async debug read ports to `reg_file.sv`, `data_mem.sv`, `id_stage.sv`, `mem_stage.sv`, and `top.sv` for monitor inspection.
-- Enhanced `tools/mem_to_load_commands.py` with raw text, binary UART stream, and interactive serial port modes.
-- Created `Docs/architecture/uart_monitor_ref.md` with full command reference and protocol specification.
-- Updated testbench with monitor integration notes and UART RX sim helper.
-- Added a loadable instruction-memory foundation with a write-port hook in `instr_mem.sv`, threaded loader inputs through `if_stage.sv` and `top.sv`, exercised the load port from `tb_top.sv`, and added a host-side command-stream helper.
-- Initialized automated AI context management (`Docs/ai_context.md`) and automatic session logging.
-
----
-
-## Current Next Step
-
-Phase 4 RTL is complete and verified in simulation. The next step is:
-
-1. Begin Phase 7: Run Small C Programs. Build the C toolchain flow, create a linker script, startup code, `putchar` for UART, and compile simple C demos.
-2. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
 
 ---
 

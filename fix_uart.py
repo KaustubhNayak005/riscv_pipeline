@@ -1,6 +1,6 @@
 import re
 
-filepath = r'C:\Users\sriji\projects\riscv_pipelinekaustubh.xpr\riscv_pipeline_offline\riscv_pipeline_offline.srcs\sources_1\imports\src\uart_monitor.sv'
+filepath = r'C:\Users\nayak\Desktop\riscv32-processor\riscv_pipeline_offline\riscv_pipeline_offline.srcs\sources_1\imports\src\uart_monitor.sv'
 
 with open(filepath, 'r') as f:
     content = f.read()

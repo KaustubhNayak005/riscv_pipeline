@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-06-04  
 > **Simulation tool:** Vivado XSim v2025.2 (win64)  
-> **Testbench location:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv)
+> **Testbench location:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv)
 
 ## Summary Table
 | Category                   | Total | ✅ PASS | ❌ FAIL | ⏳ TODO |
@@ -27,7 +27,7 @@
 - **Status:** ✅ PASS
 - **Category:** Pipeline
 - **Description:** Basic pipeline execution and register writeback validation (ADD, SUB, AND, OR, XOR results).
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L377-L385)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L377-L385)
 - **Last run:** 2026-06-03
 - **Notes:** Verified basic ALU instruction output matches register file state.
 
@@ -36,7 +36,7 @@
 - **Status:** ✅ PASS
 - **Category:** Hazard
 - **Description:** Verifies load-use stalls (LW followed immediately by dependent ADD).
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L395-L397)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L395-L397)
 - **Last run:** 2026-06-03
 - **Notes:** Confirmed that `stall_seen` flag assertions passed.
 
@@ -45,7 +45,7 @@
 - **Status:** ✅ PASS
 - **Category:** Forwarding
 - **Description:** Verifies data forwarding from EX/MEM and MEM/WB.
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L389-L393)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L389-L393)
 - **Last run:** 2026-06-03
 - **Notes:** Confirmed that forwarding was asserted in the EX/MEM and MEM/WB paths.
 
@@ -54,7 +54,7 @@
 - **Status:** ✅ PASS
 - **Category:** Branch
 - **Description:** Verifies correct branching (BEQ taken/not taken) and jump instructions (JAL/JALR).
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L399-L413)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L399-L413)
 - **Last run:** 2026-06-03
 - **Notes:** Flush logic verified on taken branches and jumps. Sequential execution confirmed for not-taken branches.
 
@@ -63,7 +63,7 @@
 - **Status:** ✅ PASS
 - **Category:** Load/Store
 - **Description:** Verifies subword (LB, LBU, LH, LHU, SB, SH) and word loads/stores.
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L653-L665)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L653-L665)
 - **Last run:** 2026-06-03
 - **Notes:** Verified sign-extension, zero-extension, and correct byte lane writes.
 
@@ -72,7 +72,7 @@
 - **Status:** ✅ PASS
 - **Category:** UART
 - **Description:** Verifies UART TX and RX functionality by receiving cycles, instructions, stalls, flushes, and IPC values printed from the program.
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L680-L709)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L680-L709)
 - **Last run:** 2026-06-03
 - **Notes:** Smoke tests decoded printed metrics successfully over UART.
 
@@ -81,7 +81,7 @@
 - **Status:** ✅ PASS
 - **Category:** MMIO
 - **Description:** Verifies memory mapping to UART registers, performance counters, and debug registers.
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L501-L522)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L501-L522)
 - **Last run:** 2026-06-03
 - **Notes:** Verified correct addresses decoder selection in MEM stage.
 
@@ -90,7 +90,7 @@
 - **Status:** ✅ PASS
 - **Category:** CSR
 - **Description:** Verifies that FENCE/FENCE.I decode as NOP, ECALL/EBREAK halt the pipeline, and illegal instructions raise halt.
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L712-L724)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L712-L724)
 - **Last run:** 2026-06-03
 - **Notes:** Checked that halt stayed low during regression and ECALL/EBREAK halt/illegal latch decode properly.
 
@@ -99,7 +99,7 @@
 - **Status:** ✅ PASS
 - **Category:** Perf
 - **Description:** Verifies cycle, instruction, stall, and flush counter MMIO register tracking.
-- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv_pipeline_srijith.xpr/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L434-L498)
+- **Test file:** [tb_top.sv](file:///c:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv#L434-L498)
 - **Last run:** 2026-06-03
 - **Notes:** Confirmed non-zero cycle and instruction count retire tracking.
 

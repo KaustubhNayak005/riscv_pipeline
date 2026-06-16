@@ -82,6 +82,9 @@ module top (
     logic        trap_taken;
     logic [31:0] trap_cause;
     logic [31:0] trap_pc;
+    logic        id_predict_taken;
+    logic [31:0] id_predict_target;
+    logic        id_predict_taken_valid;
 
     logic [31:0] id_ex_pc;
     logic [31:0] id_ex_instr;
@@ -107,6 +110,8 @@ module top (
     logic        id_ex_csr_write;
     logic        id_ex_csr_imm_sel;
     logic [31:0] id_ex_csr_read_data;
+    logic        id_ex_predict_taken;
+    logic [31:0] id_ex_predict_target;
 
     logic [31:0] ex_alu_result;
     logic [31:0] ex_rs2_data;
@@ -168,6 +173,8 @@ module top (
 
     logic        stall;
     logic        flush;
+    logic        flush_if_id;
+    logic        flush_id_ex;
     logic        trap_flush;
     logic        mret_exec;
     logic        halt_latched;
@@ -220,8 +227,14 @@ module top (
     assign id_trap_valid = trap_taken && !pc_sel && !mret_exec;
 
     assign effective_timer_irq = timer_irq && mie;
-    assign pc_sel_combined = pc_sel || id_trap_valid || mret_exec || effective_timer_irq;
-    assign if_branch_target = (id_trap_valid || effective_timer_irq) ? mtvec : branch_target;
+    
+    // Validate ID prediction (must not predict if bubbling or overridden by older flush)
+    assign id_predict_taken_valid = id_predict_taken && if_id_valid && !pc_sel && !mret_exec && !id_trap_valid && !effective_timer_irq && !stall;
+
+    assign pc_sel_combined = pc_sel || id_trap_valid || mret_exec || effective_timer_irq || id_predict_taken_valid;
+    assign if_branch_target = (id_trap_valid || effective_timer_irq) ? mtvec :
+                              (pc_sel || mret_exec) ? branch_target : 
+                              id_predict_target;
 
     // For trap with timer IRQ, capture the interrupt flag in mcause
     logic [31:0] final_trap_cause;
@@ -230,8 +243,28 @@ module top (
     assign final_trap_cause = timer_irq ? 32'h80000007 : trap_cause;
     assign final_trap_pc    = timer_irq ? pc_current : trap_pc;
 
-    assign flush = pc_sel_combined;
+    assign flush_if_id = pc_sel_combined;
+    assign flush_id_ex = pc_sel || id_trap_valid || mret_exec || effective_timer_irq;
+    assign flush = flush_id_ex; // For ID/EX and ID stage
+    
     assign effective_stall = stall;
+
+    // =================================================================
+    // Branch History Table (BHT)
+    // =================================================================
+    logic bht_predict_taken;
+
+    bht #(
+        .ENTRIES(64)
+    ) u_bht (
+        .clk(clk),
+        .rst(rst),
+        .read_pc(if_id_pc),
+        .predict_taken(bht_predict_taken),
+        .update_en(id_ex_valid && id_ex_branch),
+        .update_pc(id_ex_pc),
+        .actual_taken(ex_branch_taken)
+    );
 
     always_comb begin
         unique case (if_id_instr[6:0])
@@ -298,7 +331,7 @@ module top (
         .clk(clk),
         .rst(rst),
         .stall(effective_stall),
-        .flush(flush),
+        .flush(flush_if_id),
         .valid_in(1'b1),
         .pc_in(if_pc),
         .instr_in(if_instr),
@@ -320,7 +353,8 @@ module top (
         .rst(rst),
         .if_id_instr(if_id_instr),
         .if_id_pc(if_id_pc),
-        .flush(flush),
+        .bht_predict_taken(bht_predict_taken),
+        .flush(flush_id_ex),
         .wb_reg_write(wb_reg_write),
         .wb_rd(wb_rd),
         .wb_write_data(wb_write_data),
@@ -352,6 +386,8 @@ module top (
         .trap_taken(trap_taken),
         .trap_cause(trap_cause),
         .trap_pc(trap_pc),
+        .id_predict_taken(id_predict_taken),
+        .id_predict_target(id_predict_target),
         .dbg_reg_addr(dbg_reg_addr),
         .dbg_reg_data(dbg_reg_data)
     );
@@ -385,6 +421,8 @@ module top (
         .csr_write_in(id_csr_write),
         .csr_imm_sel_in(id_csr_imm_sel),
         .csr_read_data_in(id_csr_read_data),
+        .predict_taken_in(id_predict_taken_valid),
+        .predict_target_in(id_predict_target),
         .pc_out(id_ex_pc),
         .instr_out(id_ex_instr),
         .rs1_data_out(id_ex_rs1_data),
@@ -408,7 +446,9 @@ module top (
         .is_csr_inst_out(id_ex_is_csr_inst),
         .csr_write_out(id_ex_csr_write),
         .csr_imm_sel_out(id_ex_csr_imm_sel),
-        .csr_read_data_out(id_ex_csr_read_data)
+        .csr_read_data_out(id_ex_csr_read_data),
+        .predict_taken_out(id_ex_predict_taken),
+        .predict_target_out(id_ex_predict_target)
     );
 
     (* DONT_TOUCH = "yes" *) ex_stage u_ex_stage (
@@ -434,6 +474,8 @@ module top (
         .id_ex_csr_write(id_ex_csr_write),
         .id_ex_csr_imm_sel(id_ex_csr_imm_sel),
         .id_ex_csr_read_data(id_ex_csr_read_data),
+        .id_ex_predict_taken(id_ex_predict_taken),
+        .id_ex_predict_target(id_ex_predict_target),
         .ex_mem_alu_result(ex_mem_alu_result),
         .ex_mem_rd(ex_mem_rd),
         .ex_mem_reg_write(ex_mem_reg_write),

@@ -51,10 +51,10 @@ These are already set up on your machine (the project wouldn't exist without the
 
 ## Folder Structure — Where Everything Lives
 
-When you open the project folder (`riscv_pipelinekaustubh.xpr`), here's what you'll find:
+When you open the project folder (`riscv32-processor`), here's what you'll find:
 
 ```
-riscv_pipelinekaustubh.xpr/
+riscv32-processor/
 │
 ├── Docs/                          ← 📚 ALL DOCUMENTATION (the brain of the project)
 │   ├── GETTING_STARTED.md         ← 👈 YOU ARE HERE — this guide
@@ -64,6 +64,7 @@ riscv_pipelinekaustubh.xpr/
 │   │   ├── architecture.md        ← Full technical design
 │   │   ├── instruction_support.md ← Which RISC-V instructions work
 │   │   └── uart_monitor_ref.md    ← Serial terminal command reference
+│   ├── guides/                    ← Tutorials and step-by-step verification guides
 │   ├── planning/                  ← Project management
 │   │   ├── status.md              ← Live tracker: what's done, what's left
 │   │   ├── roadmap.md             ← 13-phase long-term plan
@@ -108,6 +109,8 @@ riscv_pipelinekaustubh.xpr/
 │   ├── install_hooks.ps1          ← Installs git hooks after git init
 │   └── mem_to_load_commands.py    ← Program loader (converts .mem → UART commands)
 │
+├── results/                       ← 📊 PERFORMANCE METRICS AND TEST OUTPUTS
+│
 ├── .gitignore                     ← Files git should ignore
 ├── .githooks/                     ← Centralized hook directory (may be empty)
 └── .git/                          ← Git version control data
@@ -150,7 +153,7 @@ When you start a new session with the AI, use this template. Copy the entire blo
 
 ```
 I'm working on a 5-stage RV32I pipelined processor on the PYNQ-Z2 FPGA.
-The project is at: C:\Users\nayak\Desktop\riscv_pipelinekaustubh.xpr
+The project is at: C:\Users\nayak\Desktop\riscv32-processor
 
 Before doing anything, read these files in order:
 1. Docs/ai_context.md

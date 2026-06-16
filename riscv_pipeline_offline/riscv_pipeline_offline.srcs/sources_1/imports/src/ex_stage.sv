@@ -31,6 +31,8 @@ module ex_stage (
     input  logic        id_ex_csr_write,
     input  logic        id_ex_csr_imm_sel,
     input  logic [31:0] id_ex_csr_read_data,
+    input  logic        id_ex_predict_taken,
+    input  logic [31:0] id_ex_predict_target,
     input  logic [31:0] ex_mem_alu_result,
     input  logic [4:0]  ex_mem_rd,
     input  logic        ex_mem_reg_write,
@@ -138,8 +140,22 @@ module ex_stage (
             trap_flush = 1'b0;
         end else begin
             ex_mem_branch_taken_in = (id_ex_branch && branch_condition_met) || id_ex_jump;
-            pc_sel = ex_mem_branch_taken_in;
-            branch_target = ex_mem_branch_target_in;
+            
+            // Misprediction Check
+            if (ex_mem_branch_taken_in != id_ex_predict_taken) begin
+                // Predict Taken != Actual Taken
+                pc_sel = 1'b1;
+                branch_target = ex_mem_branch_taken_in ? ex_mem_branch_target_in : (id_ex_pc + 32'd4);
+            end else if (ex_mem_branch_taken_in && (ex_mem_branch_target_in != id_ex_predict_target)) begin
+                // Both predict taken, but wrong target (e.g. JALR)
+                pc_sel = 1'b1;
+                branch_target = ex_mem_branch_target_in;
+            end else begin
+                // Prediction was correct
+                pc_sel = 1'b0;
+                branch_target = ex_mem_branch_target_in;
+            end
+            
             mret_exec = 1'b0;
             trap_flush = 1'b0;
         end
