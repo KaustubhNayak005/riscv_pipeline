@@ -7,28 +7,30 @@ We introduced a **64-entry Branch History Table (BHT)** using 2-bit saturating c
 ---
 
 ## Method 1: System-Level Simulation (The Benchmark)
-The most definitive proof of the predictor is running a real C program. We wrote `sw/demos/benchmark.c` (a Bubble Sort algorithm) heavily reliant on backwards looping branches.
+The most definitive proof of the predictor is running real C programs. We wrote a suite of benchmarks (Bubble Sort, Fibonacci, Matrix Multiplication, Primes, and String Match) heavily reliant on backwards looping branches.
 
-### Steps to Verify
-1. Open Vivado on your desktop.
-2. Load the project: `File > Project > Open...` and select `riscv_pipeline_offline/riscv_pipeline_offline.xpr`.
-3. Open the **Tcl Console** at the bottom of the Vivado window.
-4. Run the automated simulation script by typing:
-   ```tcl
-   source C:/Users/nayak/Desktop/riscv32-processor/run_benchmark_sim.tcl
+### Steps to Verify via CLI (Batch Mode)
+You don't even need to open the Vivado GUI! You can run the entire simulation suite from the command line using Vivado's batch mode.
+
+1. Open your terminal (Command Prompt or PowerShell).
+2. Navigate to your project directory or use absolute paths. Run the following command:
+   ```bash
+   C:\AMDDesignTools\2025.2\Vivado\bin\vivado.bat -mode batch -source C:\Users\nayak\Desktop\riscv32-processor\run_all_benchmarks.tcl
    ```
-   *(Note: Using the absolute path ensures Vivado finds the script regardless of its current working directory).*
-5. Wait for the simulation to finish (it simulates ~3 milliseconds of hardware time).
+3. Vivado will boot up headlessly, compile all simulation files, run all 5 memory `.mem` images for up to 10 milliseconds each, and then close.
 
 ### What to Look For
-Check the Vivado Tcl Console output. The simulated UART will print:
+Check the terminal output. The simulated UART will print:
 ```text
-C: 0001D291  (Cycles: 119,441)
-I: 00011A1E  (Instructions: 72,222)
-S: 00005B16  (Stalls: 23,318)
-F: 0000011F  (Flushes: 287)
+>>> RUNNING BENCHMARK SIMULATION: benchmark.mem
+C:00000764
+I:00000549
+S:000000BF
+F:00000052
 ```
-**The Verdict:** If the `F` (Flushes) counter is remarkably low compared to the `I` (Instructions) counter (e.g., 287 flushes for 72,222 instructions), the dynamic branch predictor is successfully learning and predicting the loop branches.
+*(C: Cycles, I: Instructions, S: Stalls, F: Flushes)*
+
+**The Verdict:** If the `F` (Flushes) counter is remarkably low compared to the `I` (Instructions) counter (e.g., 82 flushes for 1353 instructions), the dynamic branch predictor is successfully learning and predicting the loop branches.
 
 ---
 
@@ -36,13 +38,13 @@ F: 0000011F  (Flushes: 287)
 If you want to verify the exact logic of the 2-bit saturating counters independently from the pipeline, run the BHT unit test.
 
 ### Steps to Verify
-1. In Vivado, navigate to the **Sources** pane.
+1. In Vivado GUI, navigate to the **Sources** pane.
 2. Expand `Simulation Sources > sim_1`.
 3. Right-click on `tb_bht.sv` and select **Set as Top**.
 4. Click **Run Simulation > Run Behavioral Simulation** in the Flow Navigator.
 
 ### What to Look For
-1. **Console Output:** The testbench will print pass/fail results for state machine transitions (e.g., training a branch to go from *Weakly Not Taken* to *Strongly Taken*). You should see `*** BHT UNIT TEST PASSED ***`.
+1. **Console Output:** The testbench will print pass/fail results for state machine transitions. You should see `*** BHT UNIT TEST PASSED ***`.
 2. **Waveforms:** Open the Waveform viewer. Add `predict_taken` and `actual_taken`. Watch how the module reacts when `update_en` is pulsed. You will physically see the 2-bit internal state saturate at `11` (Strongly Taken) even if you keep training it.
 
 ---
@@ -59,6 +61,3 @@ Once you are ready to synthesize and program the physical PYNQ-Z2 board, you can
    ```
 4. In the interactive prompt, type `run` to execute the program.
 5. Once the program completes, type `perf` to dump the hardware performance counters.
-
-### What to Look For
-The hardware `perf` command will dump the exact same Cycles, Instructions, Stalls, and Flushes. Because physical silicon runs at 25MHz, this test will finish instantly, proving that the branch predictor accelerates real-world workloads!

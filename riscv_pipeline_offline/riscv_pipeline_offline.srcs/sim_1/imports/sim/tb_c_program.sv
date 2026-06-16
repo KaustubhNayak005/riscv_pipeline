@@ -88,7 +88,7 @@ module tb_c_program;
         rst = 1'b0;
 
         // Run for 3 milliseconds (enough for C program + UART)
-        #3000000;
+        #20000000;
         
         $display("\n[TESTBENCH] Simulation completed.");
         $finish;
