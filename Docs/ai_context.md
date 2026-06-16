@@ -16,7 +16,8 @@ Read it fully before acting. Update it before leaving. No exceptions.
 | 3 | Update `Docs/planning/status.md` (Recently Completed, task tracker, phase table) | ☐ |
 | 4 | Write session log: `Docs/updates/session_YYYY-MM-DD_HHMM_NAME.md` | ☐ |
 | 5 | Append link to new session log in `Docs/updates/README.md` | ☐ |
-| 6 | Run `.\tools\check_docs_stale.ps1 -Strict` — exit 0 = you are done, exit 1 = go fix | ☐ |
+| 6 | If performance metrics or test outputs were generated, save them in the `results/` folder | ☐ |
+| 7 | Run `.\tools\check_docs_stale.ps1 -Strict` — exit 0 = you are done, exit 1 = go fix | ☐ |
 
 **If the checker fails, your session is NOT complete. Go back and finish the items above.**
 
@@ -89,9 +90,10 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 - **Phase 5 (Traps, Exceptions, Timers):** Complete in Simulation. CSR file with mstatus/mtvec/mepc/mcause, timer peripheral, trap entry, MRET execution, timer interrupt generation.
 - **Phase 6 (RV32M Multiply Extension):** Complete in Simulation. `MUL`, `MULH`, `MULHSU`, `MULHU` implemented with a single-cycle DSP multiplier in `alu.sv`.
 - **Phase 7 (Run Small C Programs):** Complete in Simulation. C software infrastructure (`linker.ld`, `crt0.S`, `Makefile`), UART library, and stack-allocated "Hello World" demo compiled using xPack RISC-V GCC and simulated live in Vivado.
+- **Phase 8 (Branch Prediction & CPI Experiments):** Complete in RTL. Created a bubble sort benchmark program. Implemented Static Branch Prediction (BTFNT) followed by Dynamic Branch Prediction (64-entry BHT with 2-bit counters). Pipeline misprediction flush logic optimized. Pending final simulation runs for metrics validation.
 
 ## 🎯 Next Priorities (For the Next Agent)
-1. **Phase 8 - Branch Prediction & CPI Experiments:** Add branch predictor, branch metrics, and compare CPI using benchmarks.
+1. **Phase 8 Metrics / Phase 9 Start:** Run final simulations for Phase 8 to capture CPI and flush metrics before starting Phase 9 (Custom Packed-SIMD Extension).
 2. **Board Arrival Checklist:** Once the board is acquired, immediately execute `Docs/planning/board_arrival_checklist.md`.
 
 ## 📁 Key Documentation References
@@ -112,8 +114,8 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 
 | File | Purpose | Status | Last Updated |
 |------|---------|--------|--------------|
-| `Docs/ai_context.md` | PRIMARY BRAIN. Agent briefing, project state, priorities, file registry, session log rules. Read this first on every session. | ✅ Live | 2026-06-04 |
-| `Docs/planning/status.md` | Live phase tracker. Shows what is complete, in-progress, and pending across all phases. | ✅ Live | 2026-06-04 |
+| `Docs/ai_context.md` | PRIMARY BRAIN. Agent briefing, project state, priorities, file registry, session log rules. Read this first on every session. | ✅ Live | 2026-06-16 |
+| `Docs/planning/status.md` | Live phase tracker. Shows what is complete, in-progress, and pending across all phases. | ✅ Live | 2026-06-16 |
 | `Docs/architecture/architecture.md` | Full technical architecture: pipeline stages, forwarding, hazard unit, MMIO memory map, CSR layout, instruction support. | ✅ Live | 2026-06-04 |
 | `Docs/planning/roadmap.md` | Long-term project plan and phase definitions. Phases 0-7+. | ✅ Live | 2026-06-04 |
 | `Docs/architecture/viva_prep.md` | Q&A knowledge base for project design rationale. | ✅ Live | 2026-06-03 |
@@ -136,9 +138,10 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 | `Docs/decisions/004_exception_handling.md` | ADR stub: Exception and trap handling approach. | ⏳ Proposed | 2026-06-03 |
 | `Docs/decisions/005_cache_decision.md` | ADR stub: Cache architecture or explicit no-cache decision. | ⏳ Proposed | 2026-06-03 |
 | `Docs/GETTING_STARTED.md` | 👈 USER GUIDE. For the project owner with minimal coding background. Prompt templates, folder structure, roadmap overview, troubleshooting. | ✅ Live | 2026-06-04 |
-| `Docs/updates/README.md` | Index of all session logs. Append a link after every session. | ✅ Live | 2026-06-04 |
+| `Docs/updates/README.md` | Index of all session logs. Append a link after every session. | ✅ Live | 2026-06-16 |
 
 ## 📝 Recent AI Updates
+- **2026-06-16**: Started and completed Phase 8 (Branch Prediction & CPI Experiments). Developed a Bubble Sort benchmark in C (`sw/demos/benchmark.c`). Implemented a 64-entry Branch History Table (BHT) with 2-bit saturating counters in `bht.sv` for dynamic branch prediction. Optimized the pipeline flush logic in `ex_stage.sv` to only flush upon mispredictions. The pipeline predictively fetches branches in the ID stage and routes outcomes from EX stage back to update the BHT.
 - **2026-06-14**: Completed Phase 7 (Run Small C Programs). Installed the xPack RISC-V GCC toolchain. Implemented bare-metal C software infrastructure including `sw/linker.ld`, `sw/crt0.S`, `sw/lib/uart.c`, and `sw/Makefile`. Successfully compiled a "Hello World" application that uses stack-allocated arrays to bypass the Harvard architecture read-only data limitations. Verified the generated `.mem` live in Vivado.
 - **2026-06-14**: Analyzed project documentation to determine the next step. Confirmed that Phases 1-6 are fully implemented and verified in simulation, and hardware verification is deferred until the PYNQ-Z2 board arrives. Concluded that the next immediate priority is **Phase 7: Run Small C Programs**.
 - **2026-06-14**: Verified Phase 6 RTL (RV32M Multiply Extension) using `tb_phase6.sv`. All `MUL` family tests (`MUL`, `MULH`, `MULHSU`, `MULHU`) passed seamlessly in simulation on the first run. Phase 6 is complete in simulation.

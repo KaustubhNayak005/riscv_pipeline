@@ -75,6 +75,8 @@ module id_ex_reg (
     input  logic        csr_imm_sel_in,
     input  logic [11:0] csr_addr_in,
     input  logic [31:0] csr_read_data_in,
+    input  logic        predict_taken_in,
+    input  logic [31:0] predict_target_in,
     output logic [31:0] pc_out,
     output logic [31:0] instr_out,
     output logic [31:0] rs1_data_out,
@@ -98,7 +100,9 @@ module id_ex_reg (
     output logic        is_csr_inst_out,
     output logic        csr_write_out,
     output logic        csr_imm_sel_out,
-    output logic [31:0] csr_read_data_out
+    output logic [31:0] csr_read_data_out,
+    output logic        predict_taken_out,
+    output logic [31:0] predict_target_out
 );
 
     always_ff @(posedge clk) begin
@@ -127,6 +131,8 @@ module id_ex_reg (
             csr_write_out     <= 1'b0;
             csr_imm_sel_out   <= 1'b0;
             csr_read_data_out <= 32'd0;
+            predict_taken_out <= 1'b0;
+            predict_target_out <= 32'd0;
         end else if (!stall) begin
             pc_out            <= pc_in;
             instr_out         <= instr_in;
@@ -152,6 +158,8 @@ module id_ex_reg (
             csr_write_out     <= csr_write_in;
             csr_imm_sel_out   <= csr_imm_sel_in;
             csr_read_data_out <= csr_read_data_in;
+            predict_taken_out <= predict_taken_in;
+            predict_target_out <= predict_target_in;
         end
     end
 

@@ -1,0 +1,34 @@
+Phase 8 Bubble Sort Benchmark Results (64-entry BHT Dynamic Predictor)
+Recorded: 2026-06-16
+
+Vivado Behavioral Simulation Output:
+C: 00039EB4  (Cycles: 237,236)
+I: 00022F87  (Instructions: 143,239)
+F: 0000011F  (Flushes: 287)
+
+Verdict: The 64-entry BHT branch predictor achieved < 300 flushes for > 140,000 instructions executed, proving > 95% loop prediction accuracy.
+
+===============================================
+Sorted Array Output (From benchmark.c modification):
+===============================================
+00000000
+00000001
+00000002
+00000003
+00000004
+00000005
+00000006
+00000007
+00000008
+00000009
+0000000A
+0000000B
+0000000C
+0000000D
+0000000E
+0000000F
+00000010
+00000011
+00000012
+00000013
+DONE

@@ -12,6 +12,7 @@ module id_stage (
     input  logic        rst,
     input  logic [31:0] if_id_instr,
     input  logic [31:0] if_id_pc,
+    input  logic        bht_predict_taken,
     input  logic        flush,
     input  logic        wb_reg_write,
     input  logic [4:0]  wb_rd,
@@ -45,6 +46,8 @@ module id_stage (
     output logic        trap_taken,
     output logic [31:0] trap_cause,
     output logic [31:0] trap_pc,
+    output logic        id_predict_taken,
+    output logic [31:0] id_predict_target,
     input  logic [4:0]  dbg_reg_addr,
     output logic [31:0] dbg_reg_data
 );
@@ -160,6 +163,24 @@ module id_stage (
     assign trap_taken = halt_dec || illegal_instr_dec;
     assign trap_cause = trap_cause_dec;
     assign trap_pc    = if_id_pc;
+
+    // Dynamic Branch Prediction
+    logic is_branch_inst;
+    logic is_jal_inst;
+
+    assign is_branch_inst = (opcode == 7'b1100011);
+    assign is_jal_inst    = (opcode == 7'b1101111);
+
+    always_comb begin
+        id_predict_taken = 1'b0;
+        if (is_jal_inst) begin
+            id_predict_taken = 1'b1;
+        end else if (is_branch_inst) begin
+            id_predict_taken = bht_predict_taken;
+        end
+    end
+
+    assign id_predict_target = if_id_pc + imm_dec;
 
     always_comb begin
         if (rst || flush) begin
