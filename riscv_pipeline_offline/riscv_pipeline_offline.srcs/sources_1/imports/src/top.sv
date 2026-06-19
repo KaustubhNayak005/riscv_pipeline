@@ -85,6 +85,8 @@ module top (
     logic        id_predict_taken;
     logic [31:0] id_predict_target;
     logic        id_predict_taken_valid;
+    logic [2:0]  id_packed_op;
+    logic [2:0]  id_ex_packed_op;
 
     logic [31:0] id_ex_pc;
     logic [31:0] id_ex_instr;
@@ -270,7 +272,8 @@ module top (
         unique case (if_id_instr[6:0])
             7'b0110011,
             7'b0100011,
-            7'b1100011: begin
+            7'b1100011,
+            7'b0001011: begin
                 if_id_uses_rs1 = 1'b1;
                 if_id_uses_rs2 = 1'b1;
             end
@@ -388,6 +391,7 @@ module top (
         .trap_pc(trap_pc),
         .id_predict_taken(id_predict_taken),
         .id_predict_target(id_predict_target),
+        .id_ex_packed_op(id_packed_op),
         .dbg_reg_addr(dbg_reg_addr),
         .dbg_reg_data(dbg_reg_data)
     );
@@ -423,6 +427,7 @@ module top (
         .csr_read_data_in(id_csr_read_data),
         .predict_taken_in(id_predict_taken_valid),
         .predict_target_in(id_predict_target),
+        .packed_op_in(id_packed_op),
         .pc_out(id_ex_pc),
         .instr_out(id_ex_instr),
         .rs1_data_out(id_ex_rs1_data),
@@ -448,7 +453,8 @@ module top (
         .csr_imm_sel_out(id_ex_csr_imm_sel),
         .csr_read_data_out(id_ex_csr_read_data),
         .predict_taken_out(id_ex_predict_taken),
-        .predict_target_out(id_ex_predict_target)
+        .predict_target_out(id_ex_predict_target),
+        .packed_op_out(id_ex_packed_op)
     );
 
     (* DONT_TOUCH = "yes" *) ex_stage u_ex_stage (
@@ -476,6 +482,7 @@ module top (
         .id_ex_csr_read_data(id_ex_csr_read_data),
         .id_ex_predict_taken(id_ex_predict_taken),
         .id_ex_predict_target(id_ex_predict_target),
+        .id_ex_packed_op(id_ex_packed_op),
         .ex_mem_alu_result(ex_mem_alu_result),
         .ex_mem_rd(ex_mem_rd),
         .ex_mem_reg_write(ex_mem_reg_write),

@@ -39,6 +39,7 @@ module id_stage (
     output logic        id_ex_is_csr_inst,
     output logic        id_ex_csr_write,
     output logic        id_ex_csr_imm_sel,
+    output logic [2:0]  id_ex_packed_op,
     output logic [11:0] id_ex_csr_addr,
     output logic [31:0] id_ex_csr_read_data,
     output logic        halt,
@@ -71,6 +72,7 @@ module id_stage (
     logic       mret_dec;
     logic       csr_imm_sel_dec;
     logic       is_csr_inst_dec;
+    logic [2:0] packed_op_dec;
     logic [31:0] imm_dec;
     logic [3:0] alu_control_dec;
 
@@ -106,7 +108,8 @@ module id_stage (
         .csr_write(csr_write_dec),
         .mret(mret_dec),
         .csr_imm_sel(csr_imm_sel_dec),
-        .is_csr_inst(is_csr_inst_dec)
+        .is_csr_inst(is_csr_inst_dec),
+        .packed_op(packed_op_dec)
     );
 
     alu_control u_alu_control (
@@ -140,6 +143,7 @@ module id_stage (
     // For CSR instructions, this is the value read from the CSR.
     // For non-CSR instructions, it's unused (don't-care).
     assign id_ex_csr_read_data = csr_read_data;
+    assign id_ex_packed_op     = packed_op_dec;
 
     // Trap detection: generate trap on ECALL/EBREAK or illegal instruction
     // mcause: 11 = ECALL from M-mode, 2 = illegal instruction, 3 = EBREAK

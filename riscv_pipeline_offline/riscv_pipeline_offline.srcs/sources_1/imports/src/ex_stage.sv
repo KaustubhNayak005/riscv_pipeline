@@ -33,6 +33,7 @@ module ex_stage (
     input  logic [31:0] id_ex_csr_read_data,
     input  logic        id_ex_predict_taken,
     input  logic [31:0] id_ex_predict_target,
+    input  logic [2:0]  id_ex_packed_op,
     input  logic [31:0] ex_mem_alu_result,
     input  logic [4:0]  ex_mem_rd,
     input  logic        ex_mem_reg_write,
@@ -175,6 +176,11 @@ module ex_stage (
             ex_mem_alu_result_in = id_ex_csr_read_data;
         end
 
+        // Packed-SIMD override: substitute packed result for custom-0 ops
+        if (id_ex_packed_op != 3'd0) begin
+            ex_mem_alu_result_in = packed_result;
+        end
+
         ex_mem_rs2_data_in   = operand_b_forwarded;
         ex_mem_rd_in         = id_ex_rd;
         ex_mem_funct3_in     = id_ex_funct3;
@@ -196,6 +202,52 @@ module ex_stage (
             2'b10: csr_write_data_raw = id_ex_csr_read_data | rs1_operand;        // CSRRS / CSRRSI
             2'b11: csr_write_data_raw = id_ex_csr_read_data & ~rs1_operand;       // CSRRC / CSRRCI
             default: csr_write_data_raw = 32'd0;
+        endcase
+    end
+
+    // Packed-SIMD result computation
+    // Each instruction operates on 4 packed 8-bit lanes:
+    //   lane 0 = bits [7:0], lane 1 = [15:8], lane 2 = [23:16], lane 3 = [31:24]
+    logic [31:0] packed_result;
+    always_comb begin
+        packed_result = 32'd0;
+        unique case (id_ex_packed_op)
+            3'b000: // PADD8 — 4× 8-bit add, wrap
+                packed_result = {
+                    operand_a_forwarded[31:24] + operand_b_forwarded[31:24],
+                    operand_a_forwarded[23:16] + operand_b_forwarded[23:16],
+                    operand_a_forwarded[15:8]  + operand_b_forwarded[15:8],
+                    operand_a_forwarded[7:0]   + operand_b_forwarded[7:0]
+                };
+            3'b001: // PSUB8 — 4× 8-bit sub, wrap
+                packed_result = {
+                    operand_a_forwarded[31:24] - operand_b_forwarded[31:24],
+                    operand_a_forwarded[23:16] - operand_b_forwarded[23:16],
+                    operand_a_forwarded[15:8]  - operand_b_forwarded[15:8],
+                    operand_a_forwarded[7:0]   - operand_b_forwarded[7:0]
+                };
+            3'b010: // PMAXU8 — 4× unsigned 8-bit max
+                packed_result = {
+                    operand_a_forwarded[31:24] > operand_b_forwarded[31:24] ? operand_a_forwarded[31:24] : operand_b_forwarded[31:24],
+                    operand_a_forwarded[23:16] > operand_b_forwarded[23:16] ? operand_a_forwarded[23:16] : operand_b_forwarded[23:16],
+                    operand_a_forwarded[15:8]  > operand_b_forwarded[15:8]  ? operand_a_forwarded[15:8]  : operand_b_forwarded[15:8],
+                    operand_a_forwarded[7:0]   > operand_b_forwarded[7:0]   ? operand_a_forwarded[7:0]   : operand_b_forwarded[7:0]
+                };
+            3'b011: // PMINU8 — 4× unsigned 8-bit min
+                packed_result = {
+                    operand_a_forwarded[31:24] < operand_b_forwarded[31:24] ? operand_a_forwarded[31:24] : operand_b_forwarded[31:24],
+                    operand_a_forwarded[23:16] < operand_b_forwarded[23:16] ? operand_a_forwarded[23:16] : operand_b_forwarded[23:16],
+                    operand_a_forwarded[15:8]  < operand_b_forwarded[15:8]  ? operand_a_forwarded[15:8]  : operand_b_forwarded[15:8],
+                    operand_a_forwarded[7:0]   < operand_b_forwarded[7:0]   ? operand_a_forwarded[7:0]   : operand_b_forwarded[7:0]
+                };
+            3'b100: // PAVG8 — 4× unsigned 8-bit average, round down ((a+b)>>1)
+                packed_result = {
+                    (operand_a_forwarded[31:24] + operand_b_forwarded[31:24]) >> 1,
+                    (operand_a_forwarded[23:16] + operand_b_forwarded[23:16]) >> 1,
+                    (operand_a_forwarded[15:8]  + operand_b_forwarded[15:8])  >> 1,
+                    (operand_a_forwarded[7:0]   + operand_b_forwarded[7:0])   >> 1
+                };
+            default: packed_result = 32'd0;
         endcase
     end
 
