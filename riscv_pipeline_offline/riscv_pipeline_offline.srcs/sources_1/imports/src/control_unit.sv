@@ -27,7 +27,8 @@ module control_unit (
     output logic        csr_write,
     output logic        mret,
     output logic        csr_imm_sel,
-    output logic        is_csr_inst
+    output logic        is_csr_inst,
+    output logic [2:0]  packed_op
 );
 
     localparam logic [6:0] OPCODE_RTYPE  = 7'b0110011;
@@ -41,6 +42,7 @@ module control_unit (
     localparam logic [6:0] OPCODE_AUIPC  = 7'b0010111;
     localparam logic [6:0] OPCODE_MISC_MEM = 7'b0001111;
     localparam logic [6:0] OPCODE_SYSTEM  = 7'b1110011;
+    localparam logic [6:0] OPCODE_CUSTOM0 = 7'b0001011;
 
     localparam logic [3:0] ALU_OP_ADD    = 4'b0000;
     localparam logic [3:0] ALU_OP_BRANCH = 4'b0001;
@@ -65,6 +67,7 @@ module control_unit (
         mret          = 1'b0;
         csr_imm_sel   = 1'b0;
         is_csr_inst   = 1'b0;
+        packed_op     = 3'd0;
 
         unique case (opcode)
             OPCODE_RTYPE: begin
@@ -114,6 +117,21 @@ module control_unit (
 
             OPCODE_MISC_MEM: begin
                 // FENCE / FENCE.I: NOP
+            end
+
+            OPCODE_CUSTOM0: begin
+                // Custom-0 opcode for Packed-SIMD extension
+                // funct3[2:0] selects the packed operation:
+                //   000 = PADD8, 001 = PSUB8, 010 = PMAXU8,
+                //   011 = PMINU8, 100 = PAVG8
+                // Reserved funct3 values (101-111) -> illegal
+                if (funct3 <= 3'b100) begin
+                    reg_write = 1'b1;
+                    alu_op    = ALU_OP_ADD;
+                    packed_op = funct3;
+                end else begin
+                    illegal_instr = 1'b1;
+                end
             end
 
             OPCODE_SYSTEM: begin

@@ -12,9 +12,9 @@ The generator reads `userdocs/roadmap.md`, HDL sources, simulation logs, generat
 
 The project is currently best described as:
 
-> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 RTL is complete. Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
+> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 RTL is complete. Phase 9 RTL is complete. Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
 
-The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, and a 64-entry BHT dynamic branch predictor.
+The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, and a custom packed-SIMD extension (PADD8/PSUB8/PMAXU8/PMINU8/PAVG8).
 
 ---
 
@@ -33,7 +33,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 6: RV32M Multiply Extension | Complete (100%) | [BOARD] Needs PYNQ-Z2 proof | MUL family tests via tb_phase6.sv verified in simulation |
 | Phase 7: Run Small C Programs | Complete (100%) | None | C runtime, linker script, and "Hello World" program validated in simulation over UART. |
 | Phase 8: Branch Prediction and CPI Experiments | Complete in RTL (90%) | [SIM] Run simulations | before/after cycles, stalls, flushes, CPI/IPC comparison |
-| Phase 9: Custom Packed-SIMD Extension | Not started (0%) | [IMPLEMENT] Packed-SIMD not implemented | custom opcode tests, byte-lane kernel demo, speedup report |
+| Phase 9: Custom Packed-SIMD Extension | RTL complete, sim pending (85%) | [SIM] Run tb_phase9.sv in xsim | custom opcode tests, byte-lane kernel demo, speedup report |
 | Phase 10: Real Workloads and Benchmark Demos | Not started (0%) | [VERIFY] Workload proof missing | measurable cycle/instruction/stall/flush/CPI/speedup report |
 | Phase 11: Memory System and Bus Cleanup | Partial foundation only (15%) | [IMPLEMENT] Bus cleanup pending | memory-map regression tests and peripheral access proof |
 | Phase 12: Optional Peripherals | Not started (0%) | [OPTIONAL] Only do this if useful | selected peripheral simulation and, if hardware-facing, board proof |
@@ -54,7 +54,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | 6 | RV32M Multiply Extension | Complete | 100% | MUL family RTL implemented, tb_phase6.sv simulation passed | add DIV/DIVU/REM/REMU later if needed |
 | 7 | Run Small C Programs | Complete | 100% | linker script, startup, C runtime flow, and C demos implemented/verified | None |
 | 8 | Branch Prediction and CPI Experiments | Complete in RTL | 90% | Static (BTFNT) and Dynamic (64-entry BHT) predictors implemented and wired; bubble sort C benchmark generated | capture simulation metrics |
-| 9 | Custom Packed-SIMD Extension | Not started | 0% | no packed-SIMD custom opcode implementation detected | add PADD8/PSUB8-style custom instructions, tests, and data-parallel demo |
+| 9 | Custom Packed-SIMD Extension | RTL complete, sim pending | 85% | PADD8/PSUB8/PMAXU8/PMINU8/PAVG8 on custom-0 opcode; tb_phase9.sv created | run simulation in xsim; fix any failures |
 | 10 | Real Workloads and Benchmark Demos | Not started | 0% | no dedicated benchmark report/workload suite detected | add measurable demos with cycle/CPI/speedup reporting |
 | 11 | Memory System and Bus Cleanup | Partial foundation only | 15% | simple MMIO decode exists for UART/perf counters; byte enables exist for RAM | define a cleaner internal bus and move peripherals behind it |
 | 12 | Optional Peripherals | Not started | 0% | GPIO-style board LEDs exist in `fpga_top`, but no new roadmap peripheral detected | add optional GPIO/button/PWM/SPI/display peripheral if useful |
@@ -64,6 +64,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Recently Completed
 
+- [2026-06-19] **Phase 9**: Implemented custom packed-SIMD extension (PADD8/PSUB8/PMAXU8/PMINU8/PAVG8) on RISC-V custom-0 opcode 0001011. Created tb_phase9.sv with 8 directed/edge-case tests. Simulation pending.
 - [2026-06-16] **Phase 8**: Created `benchmark.c` (Bubble sort) to measure CPI. Implemented Static BTFNT prediction and optimized pipeline flush logic. Implemented Dynamic Branch Prediction via a 64-entry BHT (Branch History Table) with 2-bit saturating counters in `bht.sv`. Wired `id_stage.sv` to predictively fetch branches and `ex_stage.sv` to train the BHT and flush only on mispredictions.
 - [2026-06-14] **Phase 7**: Installed xPack RISC-V GCC toolchain. Created C software infrastructure (`linker.ld`, `crt0.S`, `sw/Makefile`). Implemented `hello_world.c` using stack-based string building to support the strict Harvard architecture memory mapping. Verified simulation live in Vivado.
 - [2026-06-14] **Phase 5/6 review**: Validated CSRs, Traps, and Performance Counters.
@@ -102,11 +103,12 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Current Next Step
 
-Phase 8 RTL is complete. The next steps are:
+Phase 8 and Phase 9 RTL are both complete. The next steps are:
 
-1. Run the Phase 8 bubble sort benchmark in Vivado simulation to extract branch prediction metrics (cycles, flushes, CPI) and compare improvements.
-2. Begin Phase 9: Custom Packed-SIMD Extension. Add PADD8/PSUB8 style custom instructions and run a data-parallel demo.
-3. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
+1. Run Phase 9 packed-SIMD testbench (tb_phase9.sv) in Vivado simulation.
+2. Run Phase 8 bubble sort benchmark simulation to extract branch prediction metrics.
+3. Begin Phase 10: Real Workloads and Benchmark Demos.
+4. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
 
 ---
 
@@ -375,3 +377,55 @@ This checklist contains all the deferred hardware-verification tasks. **As soon 
 - [ ] **Phase 6 (RV32M):** Load and run an RV32M multiply/divide benchmark over UART.
 - [ ] **Phase 7 (C Programs):** Load and run the compiled C "Hello World" or Fibonacci program.
 - [ ] **Phase 8-10 (Benchmarks):** Run any implemented prediction/SIMD/workload benchmarks and record physical timing and CPI outputs.
+
+## Standing Rules for Status Reporting and Verification
+(Add this section to Docs/ai_context.md - applies to every future session, not just one task)
+
+### Rule 1: No claim of "done," "passing," or "complete" without the actual output behind it
+- "Tests pass" must mean you ran them and are pasting/summarizing the real
+  transcript, not that you re-derived expected values by hand and believe
+  they're now correct.
+- If something is SKIPPED, UNTESTED, or INFERRED rather than directly
+  verified, say so explicitly in the status itself - do not fold it into
+  an "ALL PASS" or "ALL TESTS PASSED" headline. A skipped test reported
+  under an "all pass" banner is worse than no report at all, because it
+  is actively misleading.
+- If you believe something is safe based on reasoning rather than a run
+  (e.g. "I only added new opcode cases, so existing paths are
+  unaffected"), label it explicitly as an UNVERIFIED ASSUMPTION, not a
+  result. Then actually go run the regression if it's available.
+
+### Rule 2: Every session must end by syncing status docs to actual state
+Before ending any work session, update, in this order:
+1. Docs/planning/status.md - the per-phase status line must reflect
+   exactly what has real proof behind it right now: RTL written,
+   simulated, regression-clean, documented, demo built, hardware-tested.
+   Use these precise states, not vague percentages: NOT STARTED / RTL
+   WRITTEN (unsimulated) / SIM PASSING / REGRESSION CLEAN / DOCUMENTED /
+   HARDWARE PROVEN. Do not advance a phase to the next state until the
+   previous state's proof actually exists.
+2. Docs/ai_context.md - update project state, priorities, and what the
+   next session should pick up. Assume the next reader has no memory of
+   this session.
+3. A session log in Docs/updates/ summarizing exactly what changed, what
+   was proven (with how), and what remains open - including anything
+   skipped or deferred and why.
+
+### Rule 3: Distinguish proof gates explicitly
+Per this project's roadmap philosophy, every feature needs three proof
+gates: simulation, hardware, documentation. When reporting status, state
+which gates are cleared and which are not - do not let "simulation
+passing" imply "feature complete" if documentation or the demo/deliverable
+for that phase is still outstanding. A phase is only "complete" when every
+gate the roadmap defines for it has real evidence behind it.
+
+### Rule 4: When a test is replaced, not just skipped, say so precisely
+If a test fails or can't run for tooling/environment reasons and you
+substitute a different test to prove the same property, you must:
+- name the original test and why it couldn't run (root cause, not just
+  "race condition" - what is actually racing)
+- name the replacement test(s) and confirm they exercise the same
+  underlying logic path
+- report the replacement's real result
+A substituted test is acceptable. An unexplained skip reported as a pass
+is not.
