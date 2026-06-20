@@ -92,11 +92,11 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 - **Phase 7 (Run Small C Programs):** Complete in Simulation. C software infrastructure (`linker.ld`, `crt0.S`, `Makefile`), UART library, and stack-allocated "Hello World" demo compiled using xPack RISC-V GCC and simulated live in Vivado.
 - **Phase 8 (Branch Prediction & CPI Experiments):** Complete in RTL. Created a bubble sort benchmark program. Implemented Static Branch Prediction (BTFNT) followed by Dynamic Branch Prediction (64-entry BHT with 2-bit counters). Pipeline misprediction flush logic optimized. Pending final simulation runs for metrics validation.
 - **Phase 9 (Custom Packed-SIMD Extension):** RTL complete. Five packed operations (PADD8, PSUB8, PMAXU8, PMINU8, PAVG8) on custom-0 opcode (0001011). Per-lane 8-bit operations use existing forwarding/hazard logic. Testbench `tb_phase9.sv` created. Simulation pending.
+- **Phase 10 (Real Workloads and Benchmark Demos):** Complete in Simulation. Created workload suite (checksums, bubble sort). Resolved 8-bit lane overflow and unaligned access correctness bugs in SIMD benchmarking. Extracted and documented cycles, instructions, stalls, and flushes, proving a 3.85x cycle speedup for PADD8 over scalar.
 
 ## 🎯 Next Priorities (For the Next Agent)
-1. **Phase 9 Simulation Verification:** Run `tb_phase9.sv` in Vivado xsim to validate packed-SIMD logic. After passing, Phase 9 is complete in simulation.
-2. **Phase 8 Metrics / Phase 10 Start:** Run final simulations for Phase 8 to capture CPI metrics, or proceed to Phase 10 (Real Workloads and Benchmark Demos).
-3. **Board Arrival Checklist:** Once the board is acquired, immediately execute `Docs/planning/board_arrival_checklist.md`.
+1. **Phase 11 (Memory System and Bus Cleanup):** Define a cleaner internal bus and move peripherals behind it. Establish memory-map regression tests.
+2. **Board Arrival Checklist:** Once the board is acquired, immediately execute `Docs/planning/board_arrival_checklist.md`.
 
 ## 📁 Key Documentation References
 - [`Docs/GETTING_STARTED.md`](./GETTING_STARTED.md): **User guide for the project owner.** Prompt template, folder structure, roadmap summary, troubleshooting.
@@ -143,6 +143,7 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 | `Docs/updates/README.md` | Index of all session logs. Append a link after every session. | ✅ Live | 2026-06-16 |
 
 ## 📝 Recent AI Updates
+- **2026-06-21**: Completed Phase 10 (Real Workloads and Benchmark Demos). Fixed SIMD data correctness bug involving `PADD8` lane overflow and unaligned stack arrays. Generated `results/phase10_benchmark_report.md` using batch Vivado simulation UART outputs. Proved 3.85x SIMD speedup and validated 64-entry BHT branch predictor efficiency.
 - **2026-06-19**: Implemented Phase 9 (Custom Packed-SIMD Extension) RTL. Added 5 packed operations (PADD8, PSUB8, PMAXU8, PMINU8, PAVG8) on custom-0 opcode 0001011. Created `tb_phase9.sv` with 8 self-checking tests. Simulation pending.
 - **2026-06-16**: Started and completed Phase 8 (Branch Prediction & CPI Experiments). Developed a Bubble Sort benchmark in C (`sw/demos/benchmark.c`). Implemented a 64-entry Branch History Table (BHT) with 2-bit saturating counters in `bht.sv` for dynamic branch prediction. Optimized the pipeline flush logic in `ex_stage.sv` to only flush upon mispredictions. The pipeline predictively fetches branches in the ID stage and routes outcomes from EX stage back to update the BHT.
 - **2026-06-14**: Completed Phase 7 (Run Small C Programs). Installed the xPack RISC-V GCC toolchain. Implemented bare-metal C software infrastructure including `sw/linker.ld`, `sw/crt0.S`, `sw/lib/uart.c`, and `sw/Makefile`. Successfully compiled a "Hello World" application that uses stack-allocated arrays to bypass the Harvard architecture read-only data limitations. Verified the generated `.mem` live in Vivado.
