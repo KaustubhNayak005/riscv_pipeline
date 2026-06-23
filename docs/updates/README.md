@@ -1,9 +1,6 @@
 # Session Logs
-Per-session work records from each AI coding agent pass on this
-repository. Each file is named `session_YYYY-MM-DD_HHMM_<agent>.md`.
 
 - [docs_issues.md](docs_issues.md) — Original documentation audit
-  report that initiated this overhaul (historical record).
 - [session_2026-06-03_1430_agent.md](session_2026-06-03_1430_agent.md)
 - [session_2026-06-03_1907_codex.md](session_2026-06-03_1907_codex.md)
 - [session_2026-06-03_1937_codex.md](session_2026-06-03_1937_codex.md)
