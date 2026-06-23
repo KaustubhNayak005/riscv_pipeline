@@ -7,7 +7,7 @@
 | Severity | Open | In Progress | Resolved | Total |
 |----------|-----:|------------:|---------:|------:|
 | Critical |    0 |           0 |        1 |     1 |
-| High     |    0 |           0 |        2 |     2 |
+| High     |    0 |           0 |        4 |     4 |
 | Medium   |    1 |           0 |        0 |     1 |
 | Low      |    0 |           0 |        0 |     0 |
 
@@ -59,3 +59,29 @@
 - Peripherals (UART, Performance Counters, Debug Unit) are decoded directly in the MEM stage rather than unified behind an internal peripheral bus.
 
 ## Future Investigation
+
+## Resolved Issues
+
+#### ISSUE-005: Branch prediction not yet implemented
+- **Severity:** High
+- **Status:** Resolved
+- **Category:** Missing Feature
+- **Description:** Dynamic branch prediction was absent prior to Phase 8.
+- **Workaround:** None.
+- **Resolution:** Resolved in Phase 8. 64-entry Branch History Table
+  (BHT) with 2-bit saturating counters implemented in `bht.sv`.
+  Verified by `tb_bht` testbench.
+- **Notes:** Static not-taken fallback also retained.
+
+#### ISSUE-006: Custom packed-SIMD extension not yet implemented
+- **Severity:** High
+- **Status:** Resolved
+- **Category:** Missing Feature
+- **Description:** Custom packed-SIMD instructions were absent prior
+  to Phase 9.
+- **Workaround:** None.
+- **Resolution:** Resolved in Phase 9. Five instructions added via
+  custom-0 opcode (0001011): PADD8, PSUB8, PMAXU8, PMINU8, PAVG8.
+  Verified by `tb_phase9` testbench. Benchmark showed 3.85x cycle
+  speedup over scalar equivalent.
+- **Notes:** Encoded using the RV32 custom-0 opcode space.

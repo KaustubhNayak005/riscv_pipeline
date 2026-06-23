@@ -6,7 +6,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 1. RISC-V ISA Fundamentals
 
-> Refer: [architecture.md](./architecture.md) — RV32I Instruction Support Table
+> Refer: [architecture.md](./overview.md) — RV32I Instruction Support Table
 
 - What is RISC-V? Difference between RISC-V and ARM/x86.
 - What does RV32I mean? (32-bit integer base ISA)
@@ -22,7 +22,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 2. 5-Stage Pipeline Architecture
 
-> Refer: [pipeline.dot](../diagrams/pipeline.dot), [architecture.md](./architecture.md) — Pipeline Organization
+> Refer: [pipeline.dot](../diagrams/src/pipeline.dot), [architecture.md](./overview.md) — Pipeline Organization
 
 - Name the 5 stages and what each does (IF, ID, EX, MEM, WB)
 - Draw the pipeline datapath with all pipeline registers (IF/ID, ID/EX, EX/MEM, MEM/WB)
@@ -37,7 +37,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 3. Pipeline Hazards
 
-> Refer: [architecture.md](./architecture.md) — Forwarding, Load-use stall, Branch flush rows
+> Refer: [architecture.md](./overview.md) — Forwarding, Load-use stall, Branch flush rows
 
 ### 3a. Data Hazards — Forwarding
 - What is a data hazard? Give an example (RAW dependency).
@@ -70,7 +70,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 4. Memory System and MMIO
 
-> Refer: [memory_map.dot](../diagrams/memory_map.dot), [architecture.md](./architecture.md) — Memory and MMIO Map
+> Refer: [memory_map.dot](../diagrams/src/memory_map.dot), [architecture.md](./overview.md) — Memory and MMIO Map
 
 - Explain the address decode scheme: how does `mem_stage.sv` select RAM vs UART vs perf counters?
   - `addr[31:28] == 0x0` → Data RAM
@@ -85,7 +85,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 5. Subword Memory Operations
 
-> Refer: [architecture.md](./architecture.md) — Subword load/store, Misaligned Access Policy
+> Refer: [architecture.md](./overview.md) — Subword load/store, Misaligned Access Policy
 
 - What are subword operations? (`LB`, `LH`, `LBU`, `LHU`, `SB`, `SH`)
 - Difference between `LB` (sign-extended) and `LBU` (zero-extended)
@@ -99,7 +99,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 6. UART Peripheral
 
-> Refer: [architecture.md](./architecture.md) — UART MMIO addresses
+> Refer: [architecture.md](./overview.md) — UART MMIO addresses
 
 - What is UART? How does serial communication work?
 - UART MMIO register map:
@@ -115,7 +115,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 7. Performance Counters
 
-> Refer: [architecture.md](./architecture.md) — Performance counters section
+> Refer: [architecture.md](./overview.md) — Performance counters section
 
 - What performance counters are implemented?
   - `0xC0000000` — Cycle counter
@@ -131,7 +131,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 8. Special Instructions
 
-> Refer: [architecture.md](./architecture.md) — FENCE/FENCE.I, ECALL/EBREAK, Illegal instruction
+> Refer: [architecture.md](./overview.md) — FENCE/FENCE.I, ECALL/EBREAK, Illegal instruction
 
 - What do `FENCE` and `FENCE.I` do in the RISC-V spec? How are they handled here? (NOP)
 - What do `ECALL` and `EBREAK` do? How are they implemented? (halt signal, freezes pipeline)
@@ -144,7 +144,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 9. ALU and Control Unit
 
-> Refer: [architecture.md](./architecture.md) — Module Inventory
+> Refer: [architecture.md](./overview.md) — Module Inventory
 
 - What operations does the ALU support? (ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU)
 - How does `alu_control.sv` decide the ALU operation?
@@ -156,7 +156,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 10. FPGA Implementation and Results
 
-> Refer: [architecture.md](./architecture.md) — Implemented Proof Points, Top-Level Structure; session_2026-06-02_2345_kaustubh.md — Vivado Build Results
+> Refer: [architecture.md](./overview.md) — Implemented Proof Points, Top-Level Structure; docs/updates/README.md — Vivado Build Results
 
 - Target board: PYNQ-Z2 / Zynq-7000 (`xc7z020clg400-1`)
 - Clock: 125 MHz board clock → 25 MHz CPU clock via `PLLE2_BASE`
@@ -179,7 +179,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 11. Simulation and Verification
 
-> Refer: [roadmap.md](../roadmap.md) — Verification Evidence; [architecture.md](./architecture.md) — Implemented Proof Points
+> Refer: [roadmap.md](../roadmap.md) — Verification Evidence; [architecture.md](./overview.md) — Implemented Proof Points
 
 - What does the testbench (`tb_top.sv`) verify? (pipeline, perf counters, UART, halt, subword ops)
 - What does "self-checking testbench" mean?
@@ -191,7 +191,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 12. Assembly and Program Flow
 
-> Refer: [roadmap.md](../roadmap.md) — Phase 1; [architecture.md](./architecture.md) — Assembly/program flow
+> Refer: [roadmap.md](../roadmap.md) — Phase 1; [architecture.md](./overview.md) — Assembly/program flow
 
 - How is the program loaded into instruction memory? (ROM-style via `program_rom_init.svh`)
 - What assembler flow is used? (local RV32I assembler + build script → `program.mem`)
@@ -202,10 +202,10 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 13. Future Roadmap (Know the Planned Phases)
 
-> Refer: [roadmap.md](../roadmap.md) — Full roadmap; [simd_unit.dot](../diagrams/simd_unit.dot); [multicore.dot](../diagrams/multicore.dot)
+> Refer: [roadmap.md](../roadmap.md) — Full roadmap; [simd_unit.dot](../diagrams/src/simd_unit.dot); [multicore.dot](../diagrams/src/multicore.dot)
 
 ### Phase 3: Debugging and Reliability
-- What debug infrastructure is planned? (MMIO debug registers, trace buffer, assertions)
+- What debug infrastructure was implemented? (MMIO debug registers, trace buffer, assertions)
 
 ### Phase 4: UART Monitor and Program Loader
 - What does the UART monitor do? (load, run, reset commands over serial)
@@ -227,14 +227,14 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 - How do you measure branch prediction improvement? (CPI before/after)
 
 ### Phase 9: Packed-SIMD Extension
-> Refer: [simd_unit.dot](../diagrams/simd_unit.dot)
+> Refer: [simd_unit.dot](../diagrams/src/simd_unit.dot)
 - What is packed SIMD? (parallel operations on sub-word data in a single register)
 - Custom instructions: `PADD8`, `PSUB8`, `PMAXU8`, `PMINU8`, `PAVG8`
 - Uses RISC-V `custom-0` opcode space
 - Why packed SIMD inside 32-bit registers instead of a separate vector register file?
 
 ### Phase 13: Dual-Core SoC
-> Refer: [multicore.dot](../diagrams/multicore.dot)
+> Refer: [multicore.dot](../diagrams/src/multicore.dot)
 - 2 cores, shared BRAM, mailbox, round-robin arbiter
 - No caches, no coherency
 - Why is dual-core deferred to the end? (depends on bus, traps, monitor, software)
@@ -263,10 +263,10 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 > Render from `.dot` files with Graphviz or sketch by hand:
 
-1. **Pipeline datapath** — from [pipeline.dot](../diagrams/pipeline.dot)
-2. **Memory map** — from [memory_map.dot](../diagrams/memory_map.dot)
-3. **Planned SIMD unit** — from [simd_unit.dot](../diagrams/simd_unit.dot)
-4. **Planned dual-core** — from [multicore.dot](../diagrams/multicore.dot)
+1. **Pipeline datapath** — from [pipeline.dot](../diagrams/src/pipeline.dot)
+2. **Memory map** — from [memory_map.dot](../diagrams/src/memory_map.dot)
+3. **Planned SIMD unit** — from [simd_unit.dot](../diagrams/src/simd_unit.dot)
+4. **Planned dual-core** — from [multicore.dot](../diagrams/src/multicore.dot)
 5. **Instruction formats** — R, I, S, B, U, J type field layouts
 6. **Forwarding paths** — EX/MEM and MEM/WB back to EX stage inputs
 7. **Hazard stall logic** — load-use detection and stall/bubble insertion

@@ -96,7 +96,7 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 
 ## 🎯 Next Priorities (For the Next Agent)
 1. **Phase 11 (Memory System and Bus Cleanup):** Define a cleaner internal bus and move peripherals behind it. Establish memory-map regression tests.
-2. **Board Arrival Checklist:** Once the board is acquired, immediately execute `docs/planning/board_arrival_checklist.md`.
+2. **Board Arrival Checklist:** Once the board is acquired, immediately execute `docs/board_arrival_checklist.md`.
 
 ## 📁 Key Documentation References
 - [`docs/GETTING_STARTED.md`](./GETTING_STARTED.md): **User guide for the project owner.** Prompt template, folder structure, roadmap summary, troubleshooting.
@@ -125,11 +125,11 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 | `docs/architecture/instruction-set.md` | Instruction support matrix. Tracks implemented/tested/FPGA-verified status per RV32I instruction. | ✅ Complete | 2026-06-03 |
 | `docs/verification/test-plan.md` | Test status tracker. One entry per test with PASS/FAIL/TODO status and last-run date. | ✅ Complete | 2026-06-03 |
 | `docs/verification/performance.md` | Append-only FPGA utilization and timing history. One section per benchmark run. | ✅ Complete | 2026-06-03 |
-| `docs/planning/ownership.md` | Contribution tracking. Author and AI-assisted contributions. Transparency record. | ✅ Complete | 2026-06-03 |
+| `docs/ownership.md` | Contribution tracking. Author and AI-assisted contributions. Transparency record. | ✅ Complete | 2026-06-03 |
 | `docs/hardware/setup.md` | Full hardware setup and build guide. Board, pins, UART, build steps, test procedure. | ✅ Complete | 2026-06-03 |
 | `docs/known_issues.md` | Living issue tracker. Bugs, limitations, technical debt, future investigations. | ✅ Complete | 2026-06-04 |
-| `docs/planning/no_board_execution_plan.md` | Detailed breakdown of phase executability without the PYNQ-Z2 board. | ✅ Complete | 2026-06-04 |
-| `docs/planning/board_arrival_checklist.md` | Mandatory checklist of hardware verification tasks to run once the board arrives. | ✅ Complete | 2026-06-04 |
+| `docs/no_board_execution_plan.md` | Detailed breakdown of phase executability without the PYNQ-Z2 board. | ✅ Complete | 2026-06-04 |
+| `docs/board_arrival_checklist.md` | Mandatory checklist of hardware verification tasks to run once the board arrives. | ⌛ Complete | 2026-06-04 |
 | `.gitignore` | Git exclusion list for Vivado artifacts, build outputs, OS files. | ✅ Active | 2026-06-04 |
 | `tools/check_docs_stale.ps1` | Doc freshness checker. Compares source mtimes vs session log. Verifies README index. | ✅ Active | 2026-06-04 |
 | `tools/install_hooks.ps1` | Installs pre-commit, post-commit, pre-push git hooks. Run once after git init. | ✅ Active | 2026-06-04 |
@@ -151,8 +151,8 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 - **2026-06-14**: Verified Phase 6 RTL (RV32M Multiply Extension) using `tb_phase6.sv`. All `MUL` family tests (`MUL`, `MULH`, `MULHSU`, `MULHU`) passed seamlessly in simulation on the first run. Phase 6 is complete in simulation.
 - **2026-06-14**: Debugged and fixed Phase 5 simulation failures in `tb_phase5.sv`. Resolved Timer interrupt logic, forced proper 32-bit `mtimecmp` values, enabled the timer `ctrl` register, and padded the test payload with `jal x0, 0` to prevent safely asynchronous trap returns from tumbling into zeroes and triggering infinite illegal instruction traps. Phase 5 is now fully verified in simulation.
 - **2026-06-14**: Implemented Phase 5 RTL (Traps, Exceptions, Timer Interrupts). Created csr_file.sv (mstatus/mtvec/mepc/mcause), timer.sv (0xC0000200), tb_phase5.sv. Updated 7 existing source files for CSR decode, trap entry, MRET execution, and timer MMIO. Phase 5 RTL is complete; simulation pending.`n- **2026-06-13**: Identified and fixed a major hardware anti-pattern in `uart_monitor.sv` (multiple array writes per cycle causing a massive MUX network that hung Vivado synthesis). Rewrote the FSM to use a strict single-write-per-cycle shift register. Created `tb_fpga_top.sv` and fully verified the monitor end-to-end in xsim. Generated the Phase 5 Implementation Plan.
-- **2026-06-05**: Updated `docs/planning/ownership.md` to add DS srijith, Raunit kapoor, and Hemanth v as contributors per user request.
-- **2026-06-04**: Created `docs/planning/no_board_execution_plan.md` and `docs/planning/board_arrival_checklist.md` to clarify what can be developed in simulation/RTL without the physical FPGA board, and what must be done immediately once the board arrives. Appended both files to `status.md` and `ai_context.md`.
+- **2026-06-05**: Updated `docs/ownership.md` to add DS srijith, Raunit kapoor, and Hemanth v as contributors per user request.
+- **2026-06-04**: Created `docs/no_board_execution_plan.md` and `docs/board_arrival_checklist.md` to clarify what can be developed in simulation/RTL without the physical FPGA board, and what must be done immediately once the board arrives. Appended both files to `status.md` and `ai_context.md`.
 - **2026-06-04**: Created `docs/GETTING_STARTED.md` — comprehensive user guide for the project owner. Includes prompt template, folder structure walkthrough, 13-phase roadmap summary, session log explanation, git safety net overview, and troubleshooting section.
 - **2026-06-04**: Enforced mandatory documentation update system: initialized git repo, installed pre-commit/post-commit/pre-push hooks running `check_docs_stale.ps1`, hardened `ai_context.md` with PRE-EXIT MANDATORY CHECKLIST and session log template, added `.gitignore`.
 - **2026-06-04**: Implemented full Phase 4 UART monitor: `uart_monitor.sv` with 7 commands (help/load/run/reset/regs/mem/perf/trace), wired through `fpga_top.sv` with UART mux and CPU reset control. Added async debug read ports to `reg_file.sv`, `data_mem.sv`, `id_stage.sv`, `mem_stage.sv`, and `top.sv`. Enhanced `tools/mem_to_load_commands.py` with raw/binary/interactive output modes. Phase 4 RTL is now board-ready.
@@ -164,61 +164,7 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 
 ---
 
-# No-Board Execution Plan (Appended)
-
-This document outlines the project phases and their executability while the PYNQ-Z2 board is unavailable.
-
-## What to Do Next (Without the Board)
-
-Since the board is not available, you are blocked *only* from physical hardware verification. You are **not** blocked from RTL development, simulation, synthesis, and implementation.
-
-**Immediate Next Steps (Board Independent):**
-1. **Phase 4 (UART Monitor and Program Loader) - Simulation Verification:** Run a Vivado/xsim simulation with `fpga_top` as the DUT to validate the UART monitor command parser FSM end-to-end.
-2. **Phase 5 (Traps, Exceptions, and Timer Interrupts):** Start implementing the trap logic (CSRs: `mepc`, `mcause`, `mtvec`, `mstatus`), `ECALL`/`EBREAK` trap entry, timer peripheral (`0xC0000010`), and test them extensively in simulation.
-3. **Phase 6 (RV32M Multiply/Divide Extension):** Implement the `MUL` family (and optionally `DIV`), adding execution support, pipeline stalls if needed, and verify with self-checking testbenches.
-4. **Phase 7 (Run Small C Programs):** Build the C toolchain flow, create a linker script, startup code, `putchar` for UART, and compile simple C demos (like Fibonacci or bubble sort) into `.mem` files. Verify them in simulation using the monitor/loader flow.
-
-## Phase Executability Analysis
-
-| Phase | Description | Executable w/o Board | Deferred for Board |
-|-------|-------------|----------------------|--------------------|
-| **Phase 0** | Baseline Polish and Hardware Demo | **50%** (Bitstream, timing, constraints done) | Real UART terminal proof, terminal log/video, physical setup confirmation. |
-| **Phase 1** | Reproducible Software & Test Tooling | **100%** (Assembler, build script, generated memory done) | None |
-| **Phase 2** | Complete the RV32I Base More Honestly | **100%** (Subword ops, FENCE/NOP, ECALL halt done) | None |
-| **Phase 3** | Debugging and Reliability | **100%** (MMIO debug, trace buffer, sim checks done) | None |
-| **Phase 4** | UART Monitor and Program Loader | **85%** (RTL, debug ports, host loader script done) | Physical board test with `tools/mem_to_load_commands.py` over real USB-UART. |
-| **Phase 5** | Traps, Exceptions, and Timer Interrupts | **90%** (Trap CSRs, entry/return logic, timer MMIO, full sim) | Final trap/timer demo running on the real board. |
-| **Phase 6** | RV32M Multiply/Divide Extension | **95%** (RTL, stall logic, timing closure, full sim) | Running an RV32M benchmark on the physical board. |
-| **Phase 7** | Run Small C Programs | **90%** (Linker, startup, C runtime, simulated C programs) | Real C benchmark execution on the board. |
-| **Phase 8** | Branch Prediction & CPI Experiments | **90%** (Predictor RTL, branch metrics, CPI comparison in sim) | On-board benchmark timings. |
-| **Phase 9** | Custom Packed-SIMD Extension | **90%** (Custom opcode RTL, tests, data-parallel demo in sim) | On-board execution and speedup report. |
-| **Phase 10** | Real Workloads and Benchmark Demos | **90%** (Workload suite creation, simulated cycle/CPI reports) | Physical hardware measurement. |
-| **Phase 11** | Memory System and Bus Cleanup | **100%** (Internal bus definition, memory map overhaul, sim) | None |
-| **Phase 12** | Optional Peripherals | **0-100%** (Depends on peripheral. SPI/PWM can be sim'd. LEDs/VGA require board.) | Physical interaction (LEDs, VGA output, switches). |
-| **Phase 13** | Dual-Core SoC Extension | **90%** (Multicore RTL, shared memory, bus arbiter, sim demo) | Final dual-core physical board demo. |
 
 ---
 
-# Board Arrival Mandatory Checklist (Appended)
-
-This checklist contains all the deferred hardware-verification tasks. **As soon as the PYNQ-Z2 board arrives, these tasks must be completed in order before proceeding with any further RTL development.**
-
-## The Mandatory Board Proof Sequence
-
-### 1. Phase 0: The Baseline Physical Proof
-- [ ] **Hardware Setup:** Connect the PMODA TX/RX pins to the USB-UART adapter and plug it into the host PC.
-- [ ] **Bitstream Programming:** Flash the Phase 0/4 bitstream onto the PYNQ-Z2 board.
-- [ ] **Terminal Connection:** Open a serial terminal (e.g., PuTTY or minicom) at the configured baud rate.
-- [ ] **Verify Execution:** Confirm that the pre-loaded ROM program runs and prints cycle, instruction, stall, and flush counts to the real UART terminal.
-- [ ] **Documentation:** Capture a terminal log or video demo and save it as proof in the repository.
-
-### 2. Phase 4: The Monitor & Loader Proof
-- [ ] **Interactive Loader Test:** Use `tools/mem_to_load_commands.py -f interactive` to connect to the board.
-- [ ] **Command Execution:** Run the `help`, `regs`, `perf`, and `trace` commands to verify the monitor FSM responds correctly.
-- [ ] **Program Loading:** Load a new small program over UART using the `load` command and execute it using `run`. Verify it works identically to simulation.
-
-### 3. Phase-Specific Board Demos (If implemented prior to board arrival)
-- [ ] **Phase 5 (Traps & Timers):** Load and run the timer interrupt demo over UART. Verify the trap handler executes and prints proof over UART.
-- [ ] **Phase 6 (RV32M):** Load and run an RV32M multiply/divide benchmark over UART.
-- [ ] **Phase 7 (C Programs):** Load and run the compiled C "Hello World" or Fibonacci program.
-- [ ] **Phase 8-10 (Benchmarks):** Run any implemented prediction/SIMD/workload benchmarks and record physical timing and CPI outputs.
+See docs/no_board_execution_plan.md for the full No-Board Execution Plan.
