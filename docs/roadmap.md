@@ -189,57 +189,8 @@ Do not manually mark a phase complete unless the generator can prove the impleme
 
 ---
 
-# No-Board Execution Plan (Appended)
-
-This document outlines the project phases and their executability while the PYNQ-Z2 board is unavailable.
-
-## What to Do Next (Without the Board)
-
-Since the board is not available, you are blocked *only* from physical hardware verification. You are **not** blocked from RTL development, simulation, synthesis, and implementation.
-
-**Immediate Next Steps (Board Independent):**
-1. **Phase 4 (UART Monitor and Program Loader) - Simulation Verification:** Run a Vivado/xsim simulation with `fpga_top` as the DUT to validate the UART monitor command parser FSM end-to-end.
-2. **Phase 5 (Traps, Exceptions, and Timer Interrupts):** Start implementing the trap logic (CSRs: `mepc`, `mcause`, `mtvec`, `mstatus`), `ECALL`/`EBREAK` trap entry, timer peripheral (`0xC0000010`), and test them extensively in simulation.
-3. **Phase 6 (RV32M Multiply/Divide Extension):** Implement the `MUL` family (and optionally `DIV`), adding execution support, pipeline stalls if needed, and verify with self-checking testbenches.
-4. **Phase 7 (Run Small C Programs):** Build the C toolchain flow, create a linker script, startup code, `putchar` for UART, and compile simple C demos (like Fibonacci or bubble sort) into `.mem` files. Verify them in simulation using the monitor/loader flow.
-
-## Phase Executability Analysis
-
-| Phase | Description | Executable w/o Board | Deferred for Board |
-|-------|-------------|----------------------|--------------------|
-| **Phase 0** | Baseline Polish and Hardware Demo | **50%** (Bitstream, timing, constraints done) | Real UART terminal proof, terminal log/video, physical setup confirmation. |
-| **Phase 1** | Reproducible Software & Test Tooling | **100%** (Assembler, build script, generated memory done) | None |
-| **Phase 2** | Complete the RV32I Base More Honestly | **100%** (Subword ops, FENCE/NOP, ECALL halt done) | None |
-| **Phase 3** | Debugging and Reliability | **100%** (MMIO debug, trace buffer, sim checks done) | None |
-| **Phase 4** | UART Monitor and Program Loader | **85%** (RTL, debug ports, host loader script done) | Physical board test with `tools/mem_to_load_commands.py` over real USB-UART. |
-| **Phase 5** | Traps, Exceptions, and Timer Interrupts | **100%** (Trap CSRs, entry/return logic, timer MMIO, full sim) | Final trap/timer demo running on the real board. |
-| **Phase 6** | RV32M Multiply Extension | **100%** (RTL, stall logic, timing closure, full sim) | Running an RV32M benchmark on the physical board. |
-| **Phase 7** | Run Small C Programs | **90%** (Linker, startup, C runtime, simulated C programs) | Real C benchmark execution on the board. |
-| **Phase 8** | Branch Prediction & CPI Experiments | **90%** (Predictor RTL, branch metrics, CPI comparison in sim) | On-board benchmark timings. |
-| **Phase 9** | Custom Packed-SIMD Extension | **90%** (Custom opcode RTL, tests, data-parallel demo in sim) | On-board execution and speedup report. |
-| **Phase 10** | Real Workloads and Benchmark Demos | **90%** (Workload suite creation, simulated cycle/CPI reports) | Physical hardware measurement. |
-| **Phase 11** | Memory System and Bus Cleanup | **100%** (Internal bus definition, memory map overhaul, sim) | None |
-| **Phase 12** | Optional Peripherals | **0-100%** (Depends on peripheral. SPI/PWM can be sim'd. LEDs/VGA require board.) | Physical interaction (LEDs, VGA output, switches). |
-| **Phase 13** | Dual-Core SoC Extension | **90%** (Multicore RTL, shared memory, bus arbiter, sim demo) | Final dual-core physical board demo. |
 
 ---
-
-# Board Arrival Mandatory Checklist (Appended)
-
-This checklist contains all the deferred hardware-verification tasks. **As soon as the PYNQ-Z2 board arrives, these tasks must be completed in order before proceeding with any further RTL development.**
-
-## The Mandatory Board Proof Sequence
-
-### 1. Phase 0: The Baseline Physical Proof
-- [ ] **Hardware Setup:** Connect the PMODA TX/RX pins to the USB-UART adapter and plug it into the host PC.
-- [ ] **Bitstream Programming:** Flash the Phase 0/4 bitstream onto the PYNQ-Z2 board.
-- [ ] **Terminal Connection:** Open a serial terminal (e.g., PuTTY or minicom) at the configured baud rate.
-- [ ] **Verify Execution:** Confirm that the pre-loaded ROM program runs and prints cycle, instruction, stall, and flush counts to the real UART terminal.
-- [ ] **Documentation:** Capture a terminal log or video demo and save it as proof in the repository.
-
-### 2. Phase 4: The Monitor & Loader Proof
-
-
 
 
 ---
@@ -320,116 +271,9 @@ Do not manually mark a phase complete unless the generator can prove the impleme
 
 ---
 
-# No-Board Execution Plan (Appended)
-
-This document outlines the project phases and their executability while the PYNQ-Z2 board is unavailable.
-
-## What to Do Next (Without the Board)
-
-Since the board is not available, you are blocked *only* from physical hardware verification. You are **not** blocked from RTL development, simulation, synthesis, and implementation.
-
-**Immediate Next Steps (Board Independent):**
-1. **Phase 4 (UART Monitor and Program Loader) - Simulation Verification:** Run a Vivado/xsim simulation with `fpga_top` as the DUT to validate the UART monitor command parser FSM end-to-end.
-2. **Phase 5 (Traps, Exceptions, and Timer Interrupts):** Start implementing the trap logic (CSRs: `mepc`, `mcause`, `mtvec`, `mstatus`), `ECALL`/`EBREAK` trap entry, timer peripheral (`0xC0000010`), and test them extensively in simulation.
-3. **Phase 6 (RV32M Multiply/Divide Extension):** Implement the `MUL` family (and optionally `DIV`), adding execution support, pipeline stalls if needed, and verify with self-checking testbenches.
-4. **Phase 7 (Run Small C Programs):** Build the C toolchain flow, create a linker script, startup code, `putchar` for UART, and compile simple C demos (like Fibonacci or bubble sort) into `.mem` files. Verify them in simulation using the monitor/loader flow.
-
-## Phase Executability Analysis
-
-| Phase | Description | Executable w/o Board | Deferred for Board |
-|-------|-------------|----------------------|--------------------|
-| **Phase 0** | Baseline Polish and Hardware Demo | **50%** (Bitstream, timing, constraints done) | Real UART terminal proof, terminal log/video, physical setup confirmation. |
-| **Phase 1** | Reproducible Software & Test Tooling | **100%** (Assembler, build script, generated memory done) | None |
-| **Phase 2** | Complete the RV32I Base More Honestly | **100%** (Subword ops, FENCE/NOP, ECALL halt done) | None |
-| **Phase 3** | Debugging and Reliability | **100%** (MMIO debug, trace buffer, sim checks done) | None |
-| **Phase 4** | UART Monitor and Program Loader | **85%** (RTL, debug ports, host loader script done) | Physical board test with `tools/mem_to_load_commands.py` over real USB-UART. |
-| **Phase 5** | Traps, Exceptions, and Timer Interrupts | **100%** (Trap CSRs, entry/return logic, timer MMIO, full sim) | Final trap/timer demo running on the real board. |
-| **Phase 6** | RV32M Multiply Extension | **100%** (RTL, stall logic, timing closure, full sim) | Running an RV32M benchmark on the physical board. |
-| **Phase 7** | Run Small C Programs | **90%** (Linker, startup, C runtime, simulated C programs) | Real C benchmark execution on the board. |
-| **Phase 8** | Branch Prediction & CPI Experiments | **90%** (Predictor RTL, branch metrics, CPI comparison in sim) | On-board benchmark timings. |
-| **Phase 9** | Custom Packed-SIMD Extension | **90%** (Custom opcode RTL, tests, data-parallel demo in sim) | On-board execution and speedup report. |
-| **Phase 10** | Real Workloads and Benchmark Demos | **90%** (Workload suite creation, simulated cycle/CPI reports) | Physical hardware measurement. |
-| **Phase 11** | Memory System and Bus Cleanup | **100%** (Internal bus definition, memory map overhaul, sim) | None |
-| **Phase 12** | Optional Peripherals | **0-100%** (Depends on peripheral. SPI/PWM can be sim'd. LEDs/VGA require board.) | Physical interaction (LEDs, VGA output, switches). |
-| **Phase 13** | Dual-Core SoC Extension | **90%** (Multicore RTL, shared memory, bus arbiter, sim demo) | Final dual-core physical board demo. |
 
 ---
 
-# Board Arrival Mandatory Checklist (Appended)
-
-This checklist contains all the deferred hardware-verification tasks. **As soon as the PYNQ-Z2 board arrives, these tasks must be completed in order before proceeding with any further RTL development.**
-
-## The Mandatory Board Proof Sequence
-
-### 1. Phase 0: The Baseline Physical Proof
-- [ ] **Hardware Setup:** Connect the PMODA TX/RX pins to the USB-UART adapter and plug it into the host PC.
-- [ ] **Bitstream Programming:** Flash the Phase 0/4 bitstream onto the PYNQ-Z2 board.
-- [ ] **Terminal Connection:** Open a serial terminal (e.g., PuTTY or minicom) at the configured baud rate.
-- [ ] **Verify Execution:** Confirm that the pre-loaded ROM program runs and prints cycle, instruction, stall, and flush counts to the real UART terminal.
-- [ ] **Documentation:** Capture a terminal log or video demo and save it as proof in the repository.
-
-### 2. Phase 4: The Monitor & Loader Proof
-- [ ] **Interactive Loader Test:** Use `tools/mem_to_load_commands.py -f interactive` to connect to the board.
-- [ ] **Command Execution:** Run the `help`, `regs`, `perf`, and `trace` commands to verify the monitor FSM responds correctly.
-- [ ] **Program Loading:** Load a new small program over UART using the `load` command and execute it using `run`. Verify it works identically to simulation.
-
-### 3. Phase-Specific Board Demos (If implemented prior to board arrival)
-- [ ] **Phase 5 (Traps & Timers):** Load and run the timer interrupt demo over UART. Verify the trap handler executes and prints proof over UART.
-- [ ] **Phase 6 (RV32M):** Load and run an RV32M multiply/divide benchmark over UART.
-- [ ] **Phase 7 (C Programs):** Load and run the compiled C "Hello World" or Fibonacci program.
-- [ ] **Phase 8-10 (Benchmarks):** Run any implemented prediction/SIMD/workload benchmarks and record physical timing and CPI outputs.
-
-## Standing Rules for Status Reporting and Verification
-(Add this section to docs/ai_context.md - applies to every future session, not just one task)
-
-### Rule 1: No claim of "done," "passing," or "complete" without the actual output behind it
-- "Tests pass" must mean you ran them and are pasting/summarizing the real
-  transcript, not that you re-derived expected values by hand and believe
-  they're now correct.
-- If something is SKIPPED, UNTESTED, or INFERRED rather than directly
-  verified, say so explicitly in the status itself - do not fold it into
-  an "ALL PASS" or "ALL TESTS PASSED" headline. A skipped test reported
-  under an "all pass" banner is worse than no report at all, because it
-  is actively misleading.
-- If you believe something is safe based on reasoning rather than a run
-  (e.g. "I only added new opcode cases, so existing paths are
-  unaffected"), label it explicitly as an UNVERIFIED ASSUMPTION, not a
-  result. Then actually go run the regression if it's available.
-
-### Rule 2: Every session must end by syncing status docs to actual state
-Before ending any work session, update, in this order:
-1. docs/roadmap.md - the per-phase status line must reflect
-   exactly what has real proof behind it right now: RTL written,
-   simulated, regression-clean, documented, demo built, hardware-tested.
-   Use these precise states, not vague percentages: NOT STARTED / RTL
-   WRITTEN (unsimulated) / SIM PASSING / REGRESSION CLEAN / DOCUMENTED /
-   HARDWARE PROVEN. Do not advance a phase to the next state until the
-   previous state's proof actually exists.
-2. docs/ai_context.md - update project state, priorities, and what the
-   next session should pick up. Assume the next reader has no memory of
-   this session.
-3. A session log in docs/updates/ summarizing exactly what changed, what
-   was proven (with how), and what remains open - including anything
-   skipped or deferred and why.
-
-### Rule 3: Distinguish proof gates explicitly
-Per this project's roadmap philosophy, every feature needs three proof
-gates: simulation, hardware, documentation. When reporting status, state
-which gates are cleared and which are not - do not let "simulation
-passing" imply "feature complete" if documentation or the demo/deliverable
-for that phase is still outstanding. A phase is only "complete" when every
-gate the roadmap defines for it has real evidence behind it.
-
-### Rule 4: When a test is replaced, not just skipped, say so precisely
-If a test fails or can't run for tooling/environment reasons and you
-substitute a different test to prove the same property, you must:
-- name the original test and why it couldn't run (root cause, not just
-  "race condition" - what is actually racing)
-- name the replacement test(s) and confirm they exercise the same
-  underlying logic path
-- report the replacement's real result
-A substituted test is acceptable. An unexplained skip reported as a pass
-is not.
 
 ---
 
@@ -1072,3 +916,6 @@ The project is already strong: it builds, routes, passes simulation, uses very l
 The best path forward is depth before breadth. Finish the scalar CPU properly, strengthen debugability and reliability, add a monitor/loader path, and then build traps, software support, and performance experiments on top of that base.
 
 Packed-SIMD and dual-core work are still possible later, but they should come only after the single-core system is robust, measurable, and easy to explain.
+
+See docs/no_board_execution_plan.md for the full No-Board Execution Plan.
+See docs/board_arrival_checklist.md for the full Board Arrival Mandatory Checklist.
