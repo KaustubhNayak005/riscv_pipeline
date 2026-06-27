@@ -1,8 +1,8 @@
 # Roadmap Implementation Status
 
-Last updated: 2026-06-24
+Last updated: 2026-06-27
 
-<!-- This file is manually maintained. Last updated: 2026-06-24 -->
+<!-- This file is manually maintained. Last updated: 2026-06-27 -->
 
 
 
@@ -36,7 +36,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 9: Custom Packed-SIMD Extension | RTL complete, sim pending (85%) | [SIM] Run tb_phase9.sv in xsim | custom opcode tests, byte-lane kernel demo, speedup report |
 | Phase 10: Real Workloads and Benchmark Demos | Complete in Sim (90%) | [BOARD] Needs PYNQ-Z2 proof | physical hardware measurement |
 | Phase 11: Memory System and Bus Cleanup | Complete in Sim (100%) | None | physical hardware measurement (no board-dependent behavior to verify; bus is purely internal) |
-| Phase 12: Optional Peripherals | Not started (0%) | [OPTIONAL] Only do this if useful | selected peripheral simulation and, if hardware-facing, board proof |
+| Phase 12: Optional Peripherals | Not started (0%) | [OPTIONAL] LED + button/switch + PWM recommended; SPI and VGA dropped from scope | selected peripheral simulation and, if hardware-facing, board proof |
 | Phase 13: Dual-Core SoC Extension | Not started (0%) | [LATE] Depends on monitor/traps/bus/software | mailbox/shared-memory simulation, arbiter proof, final board demo |
 
 ---
@@ -57,7 +57,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | 9 | Custom Packed-SIMD Extension | RTL complete, sim pending | 85% | PADD8/PSUB8/PMAXU8/PMINU8/PAVG8 on custom-0 opcode; tb_phase9.sv created | run simulation in xsim; fix any failures |
 | 10 | Real Workloads and Benchmark Demos | Complete in Sim | 90% | benchmark suite created, simulated in Vivado, speedup report compiled | Physical hardware measurement |
 | 11 | Memory System and Bus Cleanup | Complete in Sim | 100% | internal peripheral bus (`bus_<periph>_*`) defined in `mem_stage.sv`; `tb_memory_map.sv` passes all 6 MMIO checks | physical hardware measurement (no board-dependent behavior; bus is purely internal) |
-| 12 | Optional Peripherals | Not started | 0% | GPIO-style board LEDs exist in `fpga_top`, but no new roadmap peripheral detected | add optional GPIO/button/PWM/SPI/display peripheral if useful |
+| 12 | Optional Peripherals | Not started | 0% | GPIO-style board LEDs exist in `fpga_top`, but no new roadmap peripheral detected | implement LED control register, button/switch input, and PWM (recommended scope); SPI master and VGA dropped |
 | 13 | Dual-Core SoC Extension | Not started | 0% | roadmap section exists; no dual-core RTL detected | implement only after bus/monitor/trap/software work |
 
 ---
@@ -73,7 +73,8 @@ This generated table is the quick triage view: what exists, what state it is in,
 - [2026-06-16] **Phase 8**: Created `benchmark.c` (Bubble sort) to measure CPI. Implemented Static BTFNT prediction and optimized pipeline flush logic. Implemented Dynamic Branch Prediction via a 64-entry BHT (Branch History Table) with 2-bit saturating counters in `bht.sv`. Wired `id_stage.sv` to predictively fetch branches and `ex_stage.sv` to train the BHT and flush only on mispredictions.
 - [2026-06-14] **Phase 7**: Installed xPack RISC-V GCC toolchain. Created C software infrastructure (`linker.ld`, `crt0.S`, `sw/Makefile`). Implemented `hello_world.c` using stack-based string building to support the strict Harvard architecture memory mapping. Verified simulation live in Vivado.
 - [2026-06-14] **Phase 5/6 review**: Validated CSRs, Traps, and Performance Counters.
-- [2026-06-04] **Phase 6**: Integrated system with `uart_monitor.sv` and fully verified trace and performance outputs using UART loader script.on via `tb_phase6.sv`. All `MUL`, `MULH`, `MULHSU`, and `MULHU` tests passed perfectly. Phase 6 is Complete in simulation.
+- [2026-06-04] **Phase 4**: Integrated system with `uart_monitor.sv` and fully verified trace and performance outputs using the UART loader script.
+- [2026-06-14] **Phase 6**: Verified RV32M Multiply Extension via `tb_phase6.sv`. All `MUL`, `MULH`, `MULHSU`, and `MULHU` tests passed perfectly. Phase 6 is complete in simulation.
 - Debugged and fixed Phase 5 simulation failures. Resolved Timer interrupt logic, forced proper 32-bit `mtimecmp` values, enabled the timer `ctrl` register, padded the test payload with `jal x0, 0` for safe asynchronous trap returns, and achieved full `tb_phase5.sv` simulation pass. Phase 5 is Complete in simulation.
 - Implemented complete Phase 5 RTL: CSR file (mstatus/mtvec/mepc/mcause), timer peripheral, CSR instruction decode, trap entry for ECALL/EBREAK/illegal instructions, MRET execution, timer interrupt generation. Created tb_phase5.sv testbench.
 - Fixed UART monitor logic causing Vivado synthesis hang by refactoring `tx_buf` into a serial shift-register FSM (`ST_PRINT_HEX`).
@@ -110,10 +111,12 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 Phases 0–11 are complete in simulation. The next steps are:
 
-1. Begin Phase 12: Optional Peripherals. Add GPIO peripheral, button/switch
-   input, LED control register, or simple SPI master. Simulate first.
+1. Begin Phase 12: Optional Peripherals. Add LED control register,
+   button/switch input register, and a PWM peripheral (recommended
+   scope). Simulate each first; SPI master and VGA are dropped from this
+   phase.
 2. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use
-   	ools/mem_to_load_commands.py -f interactive to run physical board tests.
+   `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
 
 ## Verification Evidence
 
@@ -723,18 +726,39 @@ Recommended order:
 ## Phase 12: Optional Peripherals
 
 **Priority: Low**  
-**Effort: 2-6 weeks depending on scope**  
-**Practicality: Medium**
+**Effort: 1-2 days for the recommended scope**  
+**Practicality: High for the items kept; low for the items dropped**
 
 Peripheral work is fine, but it should not outrank debug, software support, or core architecture completeness.
 
-### Better Peripheral Ideas Than Full Display First
+### Recommended Scope (in priority order)
 
-- GPIO peripheral
-- button or switch input
-- LED control register
-- PWM or audio tone generator
-- simple SPI master
+1. **LED control register** — MMIO-mapped (e.g. `0xD0000000`), writes drive the
+   four existing status LEDs already present in `fpga_top.sv`. Small RTL
+   change, trivial self-checking testbench, immediately visible once the
+   board arrives.
+2. **Button/switch input register** — MMIO-mapped, debounced read of the
+   PYNQ-Z2's 2 push-buttons and 2 slide switches. Pairs naturally with the
+   LED register (press button -> toggle LED is a standard board sanity
+   check).
+3. **PWM peripheral** — duty-cycle and period registers, following the same
+   counter/compare pattern already used by `timer.sv`. Enables audio tone
+   generation or LED brightness control as a board demo.
+
+Each peripheral should get its own MMIO address block, its own
+`bus_<periph>_*` signal bundle (per the Phase 11 internal bus), and its
+own entry in `docs/verification/test-plan.md`.
+
+### Dropped From This Phase
+
+- **Simple SPI master** — only useful with a concrete target device (flash,
+  DAC, ADC, or display) to talk to. Without a specific Pmod in mind, this
+  would be a peripheral with no demo. Revisit only if a specific use case
+  appears.
+- **Pmod VGA / display output** — needs an external Pmod VGA adapter and
+  substantial RTL for even a simple text framebuffer. See "Display
+  Options" below — the UART terminal already provides the best
+  value-for-effort for this project's debug needs.
 
 ### Display Options
 

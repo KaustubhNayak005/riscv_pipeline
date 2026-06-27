@@ -27,6 +27,6 @@ Since the board is not available, you are blocked *only* from physical hardware 
 | **Phase 8** | Branch Prediction & CPI Experiments | **90%** (Predictor RTL, branch metrics, CPI comparison in sim) | On-board benchmark timings. |
 | **Phase 9** | Custom Packed-SIMD Extension | **90%** (Custom opcode RTL, tests, data-parallel demo in sim) | On-board execution and speedup report. |
 | **Phase 10** | Real Workloads and Benchmark Demos | **90%** (Workload suite creation, simulated cycle/CPI reports) | Physical hardware measurement. |
-| **Phase 11** | Memory System and Bus Cleanup | **100%** (Internal signal-bundle peripheral bus in mem_stage.sv; `tb_memory_map.sv` regression coverage; memory-map doc updated) | None — Phase 11 has no board-dependent component. |
-| **Phase 12** | Optional Peripherals | **0-100%** (Depends on peripheral. SPI/PWM can be sim'd. LEDs/VGA require board.) | Physical interaction (LEDs, VGA output, switches). |
+| **Phase 11** | Memory System and Bus Cleanup | **100%** (Internal signal-bundle peripheral bus in `mem_stage.sv`; `tb_memory_map.sv` regression coverage; memory-map doc updated) | None — Phase 11 has no board-dependent component. |
+| **Phase 12** | Optional Peripherals | **100% executable without board** (LED control register, button/switch input register, and PWM peripheral — all simulation-testable with self-checking testbenches; SPI master and VGA dropped from scope) | Physical confirmation that LEDs, buttons/switches, and PWM output behave correctly on real PYNQ-Z2 hardware. |
 | **Phase 13** | Dual-Core SoC Extension | **0%** (Not started — no dual-core RTL exists in this codebase) | Full dual-core implementation: second core, shared memory/mailbox, bus arbiter, and final board demo. |
