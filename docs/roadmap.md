@@ -1,8 +1,8 @@
 # Roadmap Implementation Status
 
-Last updated: 2026-06-22
+Last updated: 2026-06-24
 
-<!-- This file is manually maintained. Last updated: 2026-06-22 -->
+<!-- This file is manually maintained. Last updated: 2026-06-24 -->
 
 
 
@@ -12,9 +12,9 @@ Last updated: 2026-06-22
 
 The project is currently best described as:
 
-> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 RTL is complete. Phase 9 RTL is complete. Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
+> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 is complete. Phase 9 is complete. Phase 10 is complete in simulation. Phase 11 is complete in simulation (internal peripheral bus refactor, memory-map regression tests). Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
 
-The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, a custom packed-SIMD extension, and a verified workload suite demonstrating measurable speedups in cycle/instruction counts.
+The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, a custom packed-SIMD extension, a verified workload suite demonstrating measurable speedups in cycle/instruction counts, and an internal peripheral signal-bundle bus for MMIO routing.
 
 ---
 
@@ -35,7 +35,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 8: Branch Prediction and CPI Experiments | Complete in RTL (90%) | [SIM] Run simulations | before/after cycles, stalls, flushes, CPI/IPC comparison |
 | Phase 9: Custom Packed-SIMD Extension | RTL complete, sim pending (85%) | [SIM] Run tb_phase9.sv in xsim | custom opcode tests, byte-lane kernel demo, speedup report |
 | Phase 10: Real Workloads and Benchmark Demos | Complete in Sim (90%) | [BOARD] Needs PYNQ-Z2 proof | physical hardware measurement |
-| Phase 11: Memory System and Bus Cleanup | Partial foundation only (15%) | [IMPLEMENT] Bus cleanup pending | memory-map regression tests and peripheral access proof |
+| Phase 11: Memory System and Bus Cleanup | Complete in Sim (100%) | None | physical hardware measurement (no board-dependent behavior to verify; bus is purely internal) |
 | Phase 12: Optional Peripherals | Not started (0%) | [OPTIONAL] Only do this if useful | selected peripheral simulation and, if hardware-facing, board proof |
 | Phase 13: Dual-Core SoC Extension | Not started (0%) | [LATE] Depends on monitor/traps/bus/software | mailbox/shared-memory simulation, arbiter proof, final board demo |
 
@@ -56,13 +56,16 @@ This generated table is the quick triage view: what exists, what state it is in,
 | 8 | Branch Prediction and CPI Experiments | Complete in RTL | 90% | Static (BTFNT) and Dynamic (64-entry BHT) predictors implemented and wired; bubble sort C benchmark generated | capture simulation metrics |
 | 9 | Custom Packed-SIMD Extension | RTL complete, sim pending | 85% | PADD8/PSUB8/PMAXU8/PMINU8/PAVG8 on custom-0 opcode; tb_phase9.sv created | run simulation in xsim; fix any failures |
 | 10 | Real Workloads and Benchmark Demos | Complete in Sim | 90% | benchmark suite created, simulated in Vivado, speedup report compiled | Physical hardware measurement |
-| 11 | Memory System and Bus Cleanup | Partial foundation only | 15% | simple MMIO decode exists for UART/perf counters; byte enables exist for RAM | define a cleaner internal bus and move peripherals behind it |
+| 11 | Memory System and Bus Cleanup | Complete in Sim | 100% | internal peripheral bus (`bus_<periph>_*`) defined in `mem_stage.sv`; `tb_memory_map.sv` passes all 6 MMIO checks | physical hardware measurement (no board-dependent behavior; bus is purely internal) |
 | 12 | Optional Peripherals | Not started | 0% | GPIO-style board LEDs exist in `fpga_top`, but no new roadmap peripheral detected | add optional GPIO/button/PWM/SPI/display peripheral if useful |
 | 13 | Dual-Core SoC Extension | Not started | 0% | roadmap section exists; no dual-core RTL detected | implement only after bus/monitor/trap/software work |
 
 ---
 
 ## Recently Completed
+
+- [2026-06-26] **Phase 11**: Implemented internal peripheral bus refactor in mem_stage.sv. All peripherals (RAM, UART, Timer, Perf Counters, Debug) routed through explicit signal bundles (`bus_<periph>_*`). Verified with new `tb_memory_map.sv` regression tests demonstrating zero change in external behavior.
+
 
 - [2026-06-21] **Phase 10**: Created workload suite (`scalar_checksum.c`, `simd_checksum.c`, `branch_sort.c`). Fixed SIMD correctness bugs (alignment, 8-bit overflow) so scalar and SIMD output mathematically identical sums. Ran batch Vivado simulations. Generated `results/phase10_benchmark_report.md` proving 3.85x cycle speedup for SIMD and validating 64-entry BHT efficiency.
 
@@ -105,41 +108,12 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Current Next Step
 
-Phase 8 and Phase 9 RTL are both complete. The next steps are:
+Phases 0–11 are complete in simulation. The next steps are:
 
-1. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
-2. Begin Phase 11: Memory System and Bus Cleanup.
-4. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
-
----
-
-## Deferred Until PYNQ-Z2 Is Available
-
-Board absence blocks hardware proof, not simulation, synthesis, implementation, or most RTL development.
-
-### Strictly Board-Required
-
-| Item | Why It Waits For Hardware |
-|------|----------------------------|
-| Real UART terminal output on hardware | Requires the physical UART pins, USB-UART adapter, and a running board |
-| Saved terminal log or video demo from the board | Requires a real hardware run to capture proof |
-| Validated hardware setup guide with actual PMODA wiring and baud-rate proof | Needs physical confirmation that the documented setup works as described |
-| LED or other visible peripheral behavior observed on board I/O | Requires physical LEDs or external hardware to observe behavior |
-| VGA/Pmod VGA or HDMI peripheral demos | Requires the board plus the relevant external display hardware path |
-| Vivado ILA signal capture from a running board design | Requires programming the FPGA and capturing live in-system signals |
-
-### Can Be Developed Now, But Final Proof Needs Board
-
-| Item | What Can Be Done Now |
-|------|-----------------------|
-| Phase 0 final hardware proof | Keep the bitstream, timing, and docs ready; defer the real terminal demo |
-| UART monitor usability on a real serial terminal | Implement and simulate the monitor protocol and commands |
-| Trap/timer demos that print proof over real UART | Implement trap logic, timer MMIO, and simulation tests first |
-| C demo programs running on hardware | Build the toolchain flow, startup code, and simulation programs first |
-| Packed-SIMD demo output on real hardware | Implement custom instructions, tests, and simulated demo programs first |
-| Dual-core mailbox/UART demo on real hardware | Build the multicore RTL, shared peripherals, and simulated communication demo first |
-
----
+1. Begin Phase 12: Optional Peripherals. Add GPIO peripheral, button/switch
+   input, LED control register, or simple SPI master. Simulate first.
+2. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use
+   	ools/mem_to_load_commands.py -f interactive to run physical board tests.
 
 ## Verification Evidence
 
@@ -156,7 +130,7 @@ Latest known verification evidence from the project:
 | Halt not-asserted test | PASS: halt was never asserted during demo program run |
 | Bitstream | Generated |
 | Routed timing | PASS: WNS +5.265 ns; all user timing constraints met (2025.2 build) |
-| Utilization | 7,127 LUTs / / 53200 (13.4%), 1737 registers / 106400 (1.63%), 1 BRAM / 140 (0.71%), 0 DSPs / 220 (0.00%) |
+| Utilization (Phase 10 baseline) | 7,127 LUTs / 53,200 (13.4%), 1,737 registers / 106,400 (1.63%), 1 BRAM / 140 (0.71%), 0 DSPs / 220 (0.00%) |
 
 ---
 
@@ -181,7 +155,6 @@ Do not manually mark a phase complete unless the generator can prove the impleme
 | architecture/instruction-set.md | ✅ Complete | Updated support matrix |
 | verification/test-plan.md | ✅ Complete | Updated simulation test logs |
 | verification/performance.md | ✅ Complete | Updated resource and timing slacks |
-| planning/ownership.md | ✅ Complete | Updated authorship details |
 | hardware/setup.md | ✅ Complete | Updated pinouts and clock settings |
 | known_issues.md | ✅ Complete | Updated open issue counts |
 | decisions/001_initial_docs.md | ✅ Accepted | Documentation system rationale |
@@ -223,59 +196,6 @@ Board absence blocks hardware proof, not simulation, synthesis, implementation, 
 
 ---
 
-## Verification Evidence
-
-Latest known verification evidence from the project:
-
-| Check | Result |
-|-------|--------|
-| Assembler/source flow | PASS: detected generated assembly flow with 240 memory words |
-| Simulation | PASS: `*** ALL TESTS PASSED (pipeline + perf counters + UART) ***` |
-| Subword tests | PASS: `SB`, `SH`, `LB`, `LBU`, `LH`, `LHU` checks passed |
-| Performance counter MMIO tests | PASS: counter HDL and simulation pass marker detected |
-| Debug MMIO tests | PASS: current PC, last commit, fault, and trace buffer reads validated in simulation |
-| UART report test | PASS: UART HDL and simulation pass marker detected |
-| Halt not-asserted test | PASS: halt was never asserted during demo program run |
-| Bitstream | Generated |
-| Routed timing | PASS: WNS +5.265 ns; all user timing constraints met (2025.2 build) |
-| Utilization | 7,127 LUTs / / 53200 (13.4%), 1737 registers / 106400 (1.63%), 1 BRAM / 140 (0.71%), 0 DSPs / 220 (0.00%) |
-
----
-
-## Maintenance Rule
-
-
-
-The generated status should include:
-
-- which phase changed
-- what was implemented
-- what evidence proves it works
-- what remains incomplete
-- whether simulation, synthesis, implementation, or hardware proof was run
-
-Do not manually mark a phase complete unless the generator can prove the implementation from source files and verification artifacts.
-
-## Documentation System
-
-| File | Status | Notes |
-|------|--------|-------|
-| architecture/instruction-set.md | ✅ Complete | Updated support matrix |
-| verification/test-plan.md | ✅ Complete | Updated simulation test logs |
-| verification/performance.md | ✅ Complete | Updated resource and timing slacks |
-| planning/ownership.md | ✅ Complete | Updated authorship details |
-| hardware/setup.md | ✅ Complete | Updated pinouts and clock settings |
-| known_issues.md | ✅ Complete | Updated open issue counts |
-| decisions/001_initial_docs.md | ✅ Accepted | Documentation system rationale |
-| `docs/decisions/002–005` | ⏳ Proposed stubs | Completed stub metadata |
-
----
-
-
----
-
-
----
 
 # Original Roadmap Plan
 

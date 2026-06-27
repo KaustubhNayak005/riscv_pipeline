@@ -1,10 +1,6 @@
 # Session Logs
 
 - [docs_issues.md](docs_issues.md) — Original documentation audit
-- [session_2026-06-03_1430_agent.md](session_2026-06-03_1430_agent.md)
-- [session_2026-06-03_1907_codex.md](session_2026-06-03_1907_codex.md)
-- [session_2026-06-03_1937_codex.md](session_2026-06-03_1937_codex.md)
-- [session_2026-06-03_2008_antigravity.md](session_2026-06-03_2008_antigravity.md)
 - [session_2026-06-04_0934_codex.md](session_2026-06-04_0934_codex.md)
 - [session_2026-06-04_0953_codex.md](session_2026-06-04_0953_codex.md)
 - [session_2026-06-04_1028_codex.md](session_2026-06-04_1028_codex.md)
@@ -22,3 +18,6 @@
 - [session_2026-06-16_1730_antigravity.md](session_2026-06-16_1730_antigravity.md)
 - [session_2026-06-19_1100_CommandCode.md](session_2026-06-19_1100_CommandCode.md)
 - [session_2026-06-21_0140_phase10.md](session_2026-06-21_0140_phase10.md)
+- [session_2026-06-23_1800_Antigravity.md](session_2026-06-23_1800_Antigravity.md) — Phase 11 implementation (internal peripheral bus refactor, tb_memory_map.sv)
+- [session_2026-06-24_1100_Antigravity.md](session_2026-06-24_1100_Antigravity.md) — Phase 11 deep verification pass (complete simulation outputs, report fixes)
+- [session_2026-06-26_1645_antigravity.md](session_2026-06-26_1645_antigravity.md) — Phase 11 documentation persistence pass

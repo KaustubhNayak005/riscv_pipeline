@@ -1,6 +1,6 @@
 # Known Issues
 
-> **Last updated:** 2026-06-14  
+> **Last updated:** 2026-06-26  
 > Issues are never deleted — resolved issues are marked with resolution notes.
 
 ## Summary
@@ -8,8 +8,8 @@
 |----------|-----:|------------:|---------:|------:|
 | Critical |    0 |           0 |        1 |     1 |
 | High     |    0 |           0 |        4 |     4 |
-| Medium   |    1 |           0 |        0 |     1 |
-| Low      |    0 |           0 |        0 |     0 |
+| Medium |    1 |           0 |        1 |     2 |
+| Low | 0 | 0 | 0 | 0 |
 
 ## Open Issues
 
@@ -56,7 +56,7 @@
 - Division instructions (DIV/DIVU/REM/REMU) are not implemented yet. MUL is implemented.
 
 ## Technical Debt
-- Peripherals (UART, Performance Counters, Debug Unit) are decoded directly in the MEM stage rather than unified behind an internal peripheral bus.
+- (Resolved in Phase 11 — see ISSUE-007 in Resolved Issues below.)
 
 ## Future Investigation
 
@@ -85,3 +85,19 @@
   Verified by `tb_phase9` testbench. Benchmark showed 3.85x cycle
   speedup over scalar equivalent.
 - **Notes:** Encoded using the RV32 custom-0 opcode space.
+
+#### ISSUE-007: Peripherals decoded ad-hoc rather than through a unified bus
+- **Severity:** Medium
+- **Status:** Resolved
+- **Category:** Technical Debt
+- **Description:** Prior to Phase 11, UART, Timer, Performance Counters,
+  and Debug MMIO were each wired into `mem_stage.sv` with their own
+  bespoke set of signals rather than a common interface.
+- **Workaround:** None needed — design worked correctly, this was a
+  maintainability concern rather than a functional bug.
+- **Resolution:** Resolved in Phase 11. All peripherals now route through
+  a common internal signal-bundle bus (bus_<periph>_*) in
+  mem_stage.sv. Verified by `tb_memory_map.sv`. No address-map changes.
+- **Notes:** A cache was explicitly NOT added as part of this phase, per
+  `docs/roadmap.md`'s own Phase 11 scope — the project's small on-chip
+  BRAM does not yet justify one.
