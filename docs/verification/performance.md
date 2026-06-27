@@ -58,4 +58,20 @@ Source: impl_1 run (2026-06-22)
 See `results/phase10_benchmark_report.md` for the full benchmark table.
 
 ---
+---
+## Phase 11 — Internal Peripheral Bus Refactor (2026-06-26)
+
+The `mem_stage.sv` refactor (Phase 11) wraps existing peripheral
+connections in a signal-bundle bus but does not add new combinational
+logic, multipliers, or memory elements. A fresh synthesis run to confirm
+exact post-refactor utilization and timing numbers has not yet been
+completed in this documentation pass. The pre-Phase-11 baseline remains:
+
+| Check | Result |
+|-------|--------|
+| Utilization (Phase 10 baseline) | 7,127 LUTs / 53,200 (13.4%), 1,737 registers / 106,400 (1.63%), 1 BRAM / 140 (0.71%), 0 DSPs / 220 (0.00%) |
+| Timing (Phase 10 baseline) | PASS: WNS +5.265 ns, all user timing constraints met (2025.2 build) |
+
+**TODO for a future session:** re-run `synth_design`, `report_utilization`, and `report_timing_summary` and append the real Phase 11 post-refactor numbers here, replacing this note.
+
 <!-- Append new benchmark runs above this line as new ## sections -->
