@@ -1,6 +1,6 @@
 # Verification Status
 
-> **Last updated:** 2026-06-04  
+> **Last updated:** 2026-06-26
 > **Simulation tool:** Vivado XSim v2025.2 (win64)  
 > **Testbench location:** [tb_top.sv](../../riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/sim/tb_top.sv)
 
@@ -17,8 +17,9 @@
 | CSR / System Tests         | 1     | 1       | 0       | 0       |
 | Performance Counter Tests  | 1     | 1       | 0       | 0       |
 | FPGA Validation            | 1     | 0       | 0       | 1       |
-| UART Monitor Tests         | 1     | 0       | 0       | 1       |
-| **Total**                  | **11**| **9**   | **0**   | **2**   |
+| UART Monitor Tests         | 1     | 1       | 0       | 0       |
+| Phase 11 / MMIO Tests       | 1     | 1       | 0       | 0       |
+| **Total**                  | **12**| **11**  | **0**   | **1**   |
 
 ---
 
@@ -114,12 +115,12 @@
 
 ## UART Monitor Tests
 #### TEST-011: UART monitor command parser
-- **Status:** ⏳ TODO (RTL ready, pending xsim run)
+- **Status:** ✅ PASS
 - **Category:** UART Monitor
-- **Description:** Verifies the UART monitor command parser FSM with fpga_top as DUT. Tests help, load, run, reset, regs, mem, perf, and trace commands.
-- **Test file:** N/A (requires fpga_top-level testbench)
-- **Last run:** N/A
-- **Notes:** Monitor RTL (`uart_monitor.sv`) is structurally complete and wired in `fpga_top.sv`. Debug read ports are connected. The `tb_top.sv` already includes `sim_uart_tx_byte()` helper. Full end-to-end simulation needs xsim with fpga_top as DUT. Host-side loader (`tools/mem_to_load_commands.py`) supports interactive mode.
+- **Description:** Verifies the UART monitor command parser FSM with `fpga_top` as DUT. Tests help, load, run, reset, regs, mem, perf, and trace commands.
+- **Test file:** `riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/sim/tb_fpga_top.sv`
+- **Last run:** 2026-06-13
+- **Notes:** Verified via `tb_fpga_top.sv`. `help` and `regs` commands exercised end-to-end through UART FSM using xsim. Clean `$finish` exit. Debug read ports are connected. The `tb_top.sv` already includes `sim_uart_tx_byte()` helper. Full end-to-end simulation needs xsim with fpga_top as DUT. Host-side loader (`tools/mem_to_load_commands.py`) supports interactive mode.
 
 ## Phase 5 Tests
 #### TEST-012: Traps and CSRs
@@ -155,3 +156,18 @@
 - **Category:** Phase 10
 - **Description:** Verifies tb_c_program (compiled C benchmark programs run correctly in simulation).
 - **Last run:** 2026-06-21
+
+
+## Phase 11 Tests
+#### TEST-017: MMIO Bus Regression
+- **Status:** ✅ PASS
+- **Category:** Phase 11 / MMIO
+- **Description:** Verifies `tb_memory_map.sv` — RAM read/write, UART
+  isolation from RAM, performance-counter read-only access, timer MMIO
+  read/write and IRQ assertion, a debug register read, and an unmapped-
+  address safety check, against the Phase 11 internal peripheral bus in
+  `mem_stage.sv`.
+- **Test file:** [tb_memory_map.sv](../../riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/sim/tb_memory_map.sv)
+- **Last run:** 2026-06-26
+- **Notes:** All 6 checks passed with the *** ALL TESTS PASSED ***
+  marker. Part of the Phase 11 internal peripheral bus verification.
