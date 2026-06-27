@@ -102,9 +102,11 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
   address-map or behavior changes; this was a pure internal refactor.
 
 ## 🎯 Next Priorities (For the Next Agent)
-1. **Phase 12 (Optional Peripherals):** Add GPIO peripheral, button/switch
-   input, LED control register, or simple SPI master. Simulate any new
-   peripheral. Physical board proof deferred until PYNQ-Z2 is available.
+1. **Phase 12 (Optional Peripherals):** Add LED control register,
+   button/switch input register, and a PWM peripheral (recommended
+   scope). Simulate each with a self-checking testbench. SPI master and
+   VGA are dropped from this phase. Physical board proof deferred until
+   PYNQ-Z2 is available.
 2. **Board Arrival Checklist:** Once the board is acquired, immediately
    execute `docs/board_arrival_checklist.md`.
 
