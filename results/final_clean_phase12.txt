@@ -1,0 +1,8 @@
+===== Final Clean Regression — tb_phase12 =====
+Date: 2026-06-28
+Tool: Vivado v2025.2 XSim
+
+Result: *** PHASE 12 ALL TESTS PASSED ***
+$finish at 16776 ns. 9/9 PASS.
+
+Test I now includes waveform verification (pwm_out = 0 for 20 cycles after disable): PASS.

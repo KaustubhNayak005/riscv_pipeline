@@ -1,0 +1,8 @@
+===== Final Clean Regression — tb_phase9 =====
+Date: 2026-06-28
+Tool: Vivado v2025.2 XSim
+
+Result: *** PHASE 9 ALL TESTS PASSED ***
+$finish at 13386 ns. 9/9 PASS.
+
+Elaboration: Clean. No `raw_btn` unconnected-port warning (fixed in Prompt 2 Gap 5).

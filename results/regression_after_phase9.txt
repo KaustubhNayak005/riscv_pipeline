@@ -1,0 +1,10 @@
+===== Regression After Phase 9 =====
+Date: 2026-06-27
+Tool: Vivado v2025.2 XSim
+Test: tb_top — Primary Regression Testbench
+
+Result: *** ALL TESTS PASSED (pipeline + perf counters + UART + monitor) ***
+$finish called at time: 1413656 ns
+
+All pipeline tests PASS, all perf counter tests PASS, all UART tests PASS.
+No regressions detected after Phase 9 fixes (none were needed).

@@ -1,0 +1,9 @@
+===== Final Clean Regression — tb_top =====
+Date: 2026-06-28
+Tool: Vivado v2025.2 XSim
+
+Result: *** ALL TESTS PASSED (pipeline + perf counters + UART + monitor) ***
+$finish at 1413656 ns.
+
+No regressions. All pipeline, forwarding, hazard, branch/jump, load/store,
+UART, MMIO, debug, CSR/system, performance counter, and monitor tests PASS.

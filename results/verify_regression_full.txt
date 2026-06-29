@@ -1,0 +1,12 @@
+===== Independent Verification — Full Regression (tb_top) =====
+Date: 2026-06-28
+Tool: Vivado v2025.2 XSim (fresh run)
+
+Result: *** ALL TESTS PASSED (pipeline + perf counters + UART + monitor) ***
+$finish called at time: 1413656 ns
+
+All pipeline, forwarding, hazard, branch/jump, load/store, UART, MMIO, debug,
+CSR/system, performance counter, and monitor tests PASS.
+No regressions detected after Phase 9 + Phase 12 additions.
+
+Matches previous session claim: YES (identical $finish time: 1413656 ns)

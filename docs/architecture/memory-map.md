@@ -27,6 +27,15 @@
 | `0xC0000200` | timer mtime (free-running counter) | implemented as read/write timer MMIO |
 | `0xC0000204` | timer mtimecmp (compare value) | implemented as read/write timer MMIO |
 | `0xC0000208` | timer control/status (bit 0 = enable, bit 1 = pending) | implemented as read/write timer MMIO |
+| `0xD0000000` | LED_CTRL | R/W. Bits [3:0] drive board LEDs directly. First write asserts led_sw_ctrl=1 — CPU permanently takes LED control from heartbeat until rst. Read returns current register value. Bits [31:4] zero. |
+| `0xD0000004` | BTN_SW | R. Bit 1 = BTN1 (raw_btn_board, debounced). Bit 0 = always 0 (BTN0 reserved for rst, tied low internally). Bits [3:2] = SW1, SW0. Bits [31:4] zero. Writes ignored. 2-stage sync + 20-cycle debounce on buttons. |
+| `0xD0000008` | PWM_PERIOD | R/W. PWM counter period in clock cycles. Default: 1000. |
+| `0xD000000C` | PWM_DUTY | R/W. Active-high cycles per period. Default: 500. Clamped to PERIOD if DUTY > PERIOD. |
+| `0xD0000010` | PWM_CTRL | R/W. Bit 0 = enable. Bit 1 = polarity invert. Default: 0x0. PWM output on PMODA JA3, tentative pin W18 — verify against board schematic before bitstream. |
+
+## Phase 12 Peripheral Address Block (0xD000xxxx)
+
+Phase 12 peripherals decoded in mem_stage.sv via bus_ledctrl_*, bus_btnsw_*, bus_pwm_* bundles following the Phase 11 internal bus pattern. Bus mux priority: timer → debug → UART → perf → ledctrl → btnsw → pwm → RAM. XDC pin assignments require verification against PYNQ-Z2 schematic before bitstream generation.
 
 ## Internal Peripheral Bus
 

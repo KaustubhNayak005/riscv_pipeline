@@ -1,0 +1,32 @@
+===== Independent Verification — Phase 12 Simulation =====
+Date: 2026-06-28
+Tool: Vivado v2025.2 XSim (fresh run, independent of previous session)
+
+Result: *** PHASE 12 ALL TESTS PASSED ***
+
+--- Test A: LED write 0xA and read-back ---
+  PASS: read-back 0xD0000000 = 0x0000000A (x5 = 0x0000000a)
+  PASS: led_out = 4'b1010
+--- Test B: LED all-bits-set then clear ---
+  PASS: led_out = 4'b1111 (all bits set)
+  PASS: led_out = 4'b0000 (cleared)
+--- Test C: Button/switch mixed inputs ---
+  PASS: BTN_SW read 0xD0000004 = 0x06 (btn=10, sw=01) (x5 = 0x00000006)
+--- Test D: Button/switch all zeros ---
+  PASS: BTN_SW read 0xD0000004 = 0x0 (all zeros) (x6 = 0x00000000)
+--- Test E: PWM period write and read-back ---
+  PASS: PWM period read-back = 200 (x7 = 0x000000c8)
+--- Test F: PWM duty write and read-back ---
+  PASS: PWM duty read-back = 100 (x8 = 0x00000064)
+--- Test G: PWM waveform verification ---
+  PWM waveform: 20 high, 15 low over 35 cycles
+  PASS: PWM waveform ~50% duty (20 high / 35 total)
+--- Test H: PWM duty clamping ---
+  PASS: PWM always-on when duty(20) > period(10)
+--- Test I: PWM disable ---
+  PASS: PWM ctrl read-back = 1 (enabled) (x9 = 0x00000001)
+  PASS: PWM ctrl read-back = 0 (disabled) (x10 = 0x00000000)
+
+9/9 PASS. $finish at 16526 ns.
+
+Matches previous session claim (9/9 PASS): YES

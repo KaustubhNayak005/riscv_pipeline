@@ -1,0 +1,33 @@
+===== Phase 12 Simulation Results =====
+Date: 2026-06-27
+Tool: Vivado v2025.2 XSim
+Test: tb_phase12 — Optional Peripherals (LED, Button/Switch, PWM)
+
+Compilation: OK (warnings only)
+Elaboration: OK (warnings only)
+
+--- Test A: LED write 0xA and read-back ---
+  PASS: Test A: read-back 0xD0000000 = 0x0000000A (x5 = 0x0000000a)
+  PASS: led_out = 4'b1010
+--- Test B: LED all-bits-set then clear ---
+  PASS: led_out = 4'b1111 (all bits set)
+  PASS: led_out = 4'b0000 (cleared)
+--- Test C: Button/switch mixed inputs ---
+  PASS: Test C: BTN_SW read 0xD0000004 = 0x06 (btn=10, sw=01) (x5 = 0x00000006)
+--- Test D: Button/switch all zeros ---
+  PASS: Test D: BTN_SW read 0xD0000004 = 0x0 (all zeros) (x6 = 0x00000000)
+--- Test E: PWM period write and read-back ---
+  PASS: Test E: PWM period read-back = 200 (x7 = 0x000000c8)
+--- Test F: PWM duty write and read-back ---
+  PASS: Test F: PWM duty read-back = 100 (x8 = 0x00000064)
+--- Test G: PWM waveform verification ---
+  PWM waveform: 20 high, 15 low over 35 cycles
+  PASS: PWM waveform ~50% duty (20 high / 35 total)
+--- Test H: PWM duty clamping ---
+  PASS: PWM always-on when duty(20) > period(10)
+--- Test I: PWM disable ---
+  PASS: Test I: PWM ctrl read-back = 1 (enabled) (x9 = 0x00000001)
+  PASS: Test I: PWM ctrl read-back = 0 (disabled) (x10 = 0x00000000)
+
+*** PHASE 12 ALL TESTS PASSED ***
+Total time: 16526 ns

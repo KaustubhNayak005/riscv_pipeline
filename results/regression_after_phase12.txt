@@ -1,0 +1,9 @@
+===== Regression After Phase 12 =====
+Date: 2026-06-27
+Tool: Vivado v2025.2 XSim
+Test: tb_top — Primary Regression Testbench
+
+Result: *** ALL TESTS PASSED (pipeline + perf counters + UART + monitor) ***
+$finish called at time: 1413656 ns
+
+No regressions detected after Phase 12 peripheral additions.
