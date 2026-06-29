@@ -15,7 +15,11 @@ module fpga_top (
     output logic [3:0] led,
     // UART pins
     input  logic       uart_rxd,
-    output logic       uart_txd
+    output logic       uart_txd,
+    // Phase 12 peripheral I/O
+    input  logic        raw_btn_board,  // BTN1 only (BTN0 is rst)
+    input  logic [1:0]  raw_sw,
+    output logic        pwm_out
 );
 
     localparam logic [5:0] LAST_EXPECT_INDEX = 6'd26;
@@ -113,6 +117,13 @@ module fpga_top (
     logic [31:0] cpu_dbg_perf_stall;
     logic [31:0] cpu_dbg_perf_flush;
 
+    // Phase 12 peripheral signals
+    logic [3:0]  led_out;
+    logic        led_sw_ctrl;
+    logic [1:0]  raw_btn;   // 2-bit internal: raw_btn[1] = board input, raw_btn[0] = tied to 0
+
+    assign raw_btn = {raw_btn_board, 1'b0};
+
     // UART mux: when in monitor mode, txd comes from monitor.
     // When running, txd comes from CPU. rxd always goes to monitor
     // (which forwards bytes to CPU in passthrough mode).
@@ -199,7 +210,13 @@ module fpga_top (
         .dbg_trace_wb_data   (mon_dbg_trace_wb_data),
         .dbg_trace_status    (mon_dbg_trace_status),
         .dbg_trace_count     (mon_dbg_trace_count),
-        .dbg_trace_head      (mon_dbg_trace_head)
+        .dbg_trace_head      (mon_dbg_trace_head),
+        // Phase 12 peripheral I/O
+        .led_out             (led_out),
+        .led_sw_ctrl         (led_sw_ctrl),
+        .raw_btn             (raw_btn),
+        .raw_sw              (raw_sw),
+        .pwm_out             (pwm_out)
     );
 
     logic [5:0]  pass_index;
@@ -310,18 +327,16 @@ module fpga_top (
             heartbeat_counter <= 25'd0;
             pass_sync <= 2'b00;
             fail_sync <= 2'b00;
-            led <= 4'b0000;
         end else begin
             heartbeat_counter <= heartbeat_counter + 25'd1;
             pass_sync <= {pass_sync[0], pass_latched};
             fail_sync <= {fail_sync[0], fail_latched};
-            led <= {
-                fail_sync[1],
-                pass_sync[1],
-                pll_locked && !pass_sync[1] && !fail_sync[1],
-                heartbeat_counter[24]
-            };
         end
     end
+
+    assign led = led_sw_ctrl ? led_out
+                             : {fail_sync[1], pass_sync[1],
+                                pll_locked && !pass_sync[1] && !fail_sync[1],
+                                heartbeat_counter[24]};
 
 endmodule

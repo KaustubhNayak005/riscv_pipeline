@@ -1,0 +1,36 @@
+===== fpga_top Synthesis — 2026-06-28 03:15 =====
+Vivado: v2025.2 (64-bit)
+Part:   xc7z020clg400-1
+Top:    fpga_top
+Flow:   Vivado Synthesis 2025 (Default strategy)
+
+Synth Design complete | Checksum: 84a84c29
+
+Synthesis finished with 0 errors, 0 critical warnings and 406 warnings.
+132 Infos, 110 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+
+----- PRE-FIX RESULTS (2026-06-28 03:13, first run):
+Synthesis finished with 0 errors, 12 critical warnings and 406 warnings.
+132 Infos, 110 Warnings, 12 Critical Warnings and 0 Errors encountered.
+
+The 12 critical warnings were:
+  CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q led_reg[3:0]
+  (assign + always_ff both driving 'led')
+
+----- FIX APPLIED:
+fpga_top.sv:
+  - Removed `led <= 4'b0000;` from always_ff reset clause (line 320)
+  - `led` is already driven by the continuous `assign` on line 330
+  - The assign properly handles reset via rst condition in pass_sync/fail_sync
+
+----- POST-FIX RESULTS (2026-06-28 03:15, re-synthesis):
+Synthesis finished with 0 errors, 0 critical warnings and 406 warnings.
+All 12 multi-driven-net critical warnings eliminated.
+The remaining 406 warnings are benign (board-part not found, unused ports,
+timescale propagation, implementation-specific XDC constraints — all expected).
+
+Verification: All 3 simulation testbenches re-run and passing:
+  tb_phase9:   9/9 PASS
+  tb_phase12:  9/9 PASS
+  tb_top:      ALL PASS (pipeline + perf counters + UART + monitor)

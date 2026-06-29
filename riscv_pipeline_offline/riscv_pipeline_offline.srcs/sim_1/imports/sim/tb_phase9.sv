@@ -46,6 +46,13 @@ module tb_phase9;
     logic [2:0]  dbg_trace_count;
     logic [1:0]  dbg_trace_head;
 
+    // Phase 12 tie-offs (tb_phase9 predates Phase 12; suppress elaboration warnings)
+    logic [3:0]  unused_led_out;
+    logic        unused_led_sw_ctrl;
+    logic [1:0]  unused_raw_btn;
+    logic [1:0]  unused_raw_sw;
+    logic        unused_pwm_out;
+
     top uut (
         .clk(clk), .rst(rst),
         .debug_pc_current(debug_pc_current),
@@ -64,7 +71,10 @@ module tb_phase9;
         .dbg_trace_sel(dbg_trace_sel),
         .dbg_trace_pc(dbg_trace_pc), .dbg_trace_instr(dbg_trace_instr),
         .dbg_trace_wb_data(dbg_trace_wb_data), .dbg_trace_status(dbg_trace_status),
-        .dbg_trace_count(dbg_trace_count), .dbg_trace_head(dbg_trace_head)
+        .dbg_trace_count(dbg_trace_count), .dbg_trace_head(dbg_trace_head),
+        // Phase 12 port tie-offs
+        .led_out(unused_led_out), .led_sw_ctrl(unused_led_sw_ctrl),
+        .raw_btn(2'b00), .raw_sw(2'b00), .pwm_out(unused_pwm_out)
     );
 
     initial uart_rxd_tb = 1'b1;

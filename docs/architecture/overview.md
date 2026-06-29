@@ -1,8 +1,8 @@
 # Architecture
 
-Last updated: 2026-06-24
+Last updated: 2026-06-28
 
-<!-- This file is manually maintained. Last updated: 2026-06-24 -->
+<!-- This file is manually maintained. Last updated: 2026-06-28 -->
 
 
 
@@ -10,7 +10,7 @@ Last updated: 2026-06-24
 
 ## Current Architecture Summary
 
-The implemented system is a small bare-metal RISC-V soft SoC centered on a 5-stage RV32I pipelined processor. The current verified architecture includes: a ROM-preloaded instruction memory with a UART monitor-driven loader, data RAM, UART MMIO, performance-counter MMIO, debug MMIO, a 4-entry commit trace buffer, forwarding, load-use stall handling, branch/jump flushing, subword memory operations, FENCE/FENCE.I as NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, and a custom packed-SIMD extension (PADD8/PSUB8/PMAXU8/PMINU8/PAVG8) on custom-0 opcode.
+The implemented system is a small bare-metal RISC-V soft SoC centered on a 5-stage RV32I pipelined processor. The current verified architecture includes: a ROM-preloaded instruction memory with a UART monitor-driven loader, data RAM, UART MMIO, performance-counter MMIO, debug MMIO, a 4-entry commit trace buffer, forwarding, load-use stall handling, branch/jump flushing, subword memory operations, FENCE/FENCE.I as NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, a custom packed-SIMD extension (PADD8/PSUB8/PMAXU8/PMINU8/PAVG8) on custom-0 opcode, an internal peripheral signal-bundle bus, and three board-level peripherals (LED control, button/switch input, PWM).
 
 The UART monitor (`uart_monitor.sv`) provides 7 interactive commands over a serial terminal and controls CPU reset and UART passthrough. Debug read ports in `reg_file.sv`, `data_mem.sv`, `id_stage.sv`, `mem_stage.sv`, and `top.sv` let the monitor inspect register file, data memory, performance counters, and trace buffer state without going through MMIO.
 

@@ -91,7 +91,7 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
 - **Phase 6 (RV32M Multiply Extension):** Complete in Simulation. `MUL`, `MULH`, `MULHSU`, `MULHU` implemented with a single-cycle DSP multiplier in `alu.sv`.
 - **Phase 7 (Run Small C Programs):** Complete in Simulation. C software infrastructure (`linker.ld`, `crt0.S`, `Makefile`), UART library, and stack-allocated "Hello World" demo compiled using xPack RISC-V GCC and simulated live in Vivado.
 - **Phase 8 (Branch Prediction & CPI Experiments):** Complete in RTL. Created a bubble sort benchmark program. Implemented Static Branch Prediction (BTFNT) followed by Dynamic Branch Prediction (64-entry BHT with 2-bit counters). Pipeline misprediction flush logic optimized. Pending final simulation runs for metrics validation.
-- **Phase 9 (Custom Packed-SIMD Extension):** RTL complete. Five packed operations (PADD8, PSUB8, PMAXU8, PMINU8, PAVG8) on custom-0 opcode (0001011). Per-lane 8-bit operations use existing forwarding/hazard logic. Testbench `tb_phase9.sv` created. Simulation pending.
+- **Phase 9 (Custom Packed-SIMD Extension):** SIMULATION VERIFIED. 9/9 tests PASS on tb_phase9.sv. Five packed operations on custom-0 opcode. Per-lane 8-bit operations verified with forwarding/hazard logic.
 - **Phase 10 (Real Workloads and Benchmark Demos):** Complete in Simulation. Created workload suite (checksums, bubble sort). Resolved 8-bit lane overflow and unaligned access correctness bugs in SIMD benchmarking. Extracted and documented cycles, instructions, stalls, and flushes, proving a 3.85x cycle speedup for PADD8 over scalar.
 - **Phase 11 (Memory System and Bus Cleanup):** Complete in Simulation.
   Refactored `mem_stage.sv` to route RAM, UART, Timer, Performance
@@ -100,13 +100,18 @@ This project is a 5-stage pipelined RV32I-style soft SoC implemented on the PYNQ
   (6 checks, all passing). Updated `docs/architecture/memory-map.md`
   with the previously-undocumented timer register addresses. No
   address-map or behavior changes; this was a pure internal refactor.
+- **Phase 12 (Optional Peripherals):** Complete in Simulation. Added LED
+  control register (`led_ctrl.sv`), button/switch input register
+  (`btn_sw.sv`), and PWM peripheral (`pwm.sv`). Verified via
+  `tb_phase12.sv` (9/9 PASS including PWM waveform and disable checks).
+  Synthesis clean (0 errors, 0 critical warnings). Physical board proof
+  deferred until PYNQ-Z2 is available.
 
 ## 🎯 Next Priorities (For the Next Agent)
-1. **Phase 12 (Optional Peripherals):** Add LED control register,
-   button/switch input register, and a PWM peripheral (recommended
-   scope). Simulate each with a self-checking testbench. SPI master and
-   VGA are dropped from this phase. Physical board proof deferred until
-   PYNQ-Z2 is available.
+1. **Phase 12 (Optional Peripherals):** Complete in Simulation. LED
+   control, button/switch input, and PWM peripheral implemented. Verified
+   via `tb_phase12.sv` (9/9 PASS). Synthesis clean (0 errors, 0 critical
+   warnings). Physical board proof deferred until PYNQ-Z2 is available.
 2. **Board Arrival Checklist:** Once the board is acquired, immediately
    execute `docs/board_arrival_checklist.md`.
 
@@ -156,6 +161,17 @@ Any AI agent modifying a doc file MUST verify its entry is still accurate.
 | `docs/updates/README.md` | Index of all session logs. Append a link after every session. | ✅ Live | 2026-06-16 |
 
 ## 📝 Recent AI Updates
+- **2026-06-28**: Completed Phase 12 (Optional Peripherals). Implemented
+  `led_ctrl.sv`, `btn_sw.sv`, `pwm.sv`. Created `tb_phase12.sv` (9/9
+  PASS including PWM waveform/disable checks). All 3 regression
+  testbenches passing (tb_phase9, tb_phase12, tb_top). Fixed Phase 9
+  testbench unconnected-port warnings. Removed `bus_valid` dangling
+  wires from `btn_sw.sv` and `pwm.sv`. Renamed `raw_btn` port to
+  `raw_btn_board` in `fpga_top.sv` (BTN0 reserved for rst). Fixed
+  critical synthesis bug: removed multi-driven `led` assignment from
+  `always_ff` in `fpga_top.sv` (was driven by both `assign` and
+  `always_ff`, causing 12 critical warnings). Re-synthesis confirms
+  0 errors, 0 critical warnings. Saved `results/synthesis_clean_2026-06-28.txt`.
 - **2026-06-21**: Completed Phase 10 (Real Workloads and Benchmark Demos). Fixed SIMD data correctness bug involving `PADD8` lane overflow and unaligned stack arrays. Generated `results/phase10_benchmark_report.md` using batch Vivado simulation UART outputs. Proved 3.85x SIMD speedup and validated 64-entry BHT branch predictor efficiency.
 - **2026-06-19**: Implemented Phase 9 (Custom Packed-SIMD Extension) RTL. Added 5 packed operations (PADD8, PSUB8, PMAXU8, PMINU8, PAVG8) on custom-0 opcode 0001011. Created `tb_phase9.sv` with 8 self-checking tests. Simulation pending.
 - **2026-06-16**: Started and completed Phase 8 (Branch Prediction & CPI Experiments). Developed a Bubble Sort benchmark in C (`sw/demos/benchmark.c`). Implemented a 64-entry Branch History Table (BHT) with 2-bit saturating counters in `bht.sv` for dynamic branch prediction. Optimized the pipeline flush logic in `ex_stage.sv` to only flush upon mispredictions. The pipeline predictively fetches branches in the ID stage and routes outcomes from EX stage back to update the BHT.

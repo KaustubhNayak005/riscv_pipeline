@@ -75,7 +75,13 @@ module mem_stage (
     output logic [31:0] mon_trace_status,
     output logic [2:0]  mon_trace_count,
     output logic [1:0]  mon_trace_head,
-    input  logic [1:0]  mon_trace_sel
+    input  logic [1:0]  mon_trace_sel,
+    // Phase 12 peripheral I/O
+    output logic [3:0]  led_out,
+    output logic        led_sw_ctrl,
+    input  logic [1:0]  raw_btn,
+    input  logic [1:0]  raw_sw,
+    output logic        pwm_out
 );
 
     // ------------------------------------------------------------------
@@ -86,6 +92,9 @@ module mem_stage (
     logic        perf_sel;
     logic        debug_sel;
     logic        timer_sel;
+    logic        ledctrl_sel;
+    logic        btnsw_sel;
+    logic        pwm_sel;
     logic [31:0] perf_read_data;
     logic [31:0] debug_read_data;
 
@@ -108,6 +117,14 @@ module mem_stage (
                        (ex_mem_alu_result[7:4] >= 4'h1);
     assign timer_sel = (ex_mem_alu_result[31:28] == 4'hC) && 
                        (ex_mem_alu_result[9] == 1'b1);
+    assign ledctrl_sel = (ex_mem_alu_result[31:28] == 4'hD) &&
+                         (ex_mem_alu_result[7:0] == 8'h00);
+    assign btnsw_sel   = (ex_mem_alu_result[31:28] == 4'hD) &&
+                         (ex_mem_alu_result[7:0] == 8'h04);
+    assign pwm_sel     = (ex_mem_alu_result[31:28] == 4'hD) &&
+                         (ex_mem_alu_result[7:0] == 8'h08 ||
+                          ex_mem_alu_result[7:0] == 8'h0C ||
+                          ex_mem_alu_result[7:0] == 8'h10);
 
     // Gate RAM enable signals so MMIO does not touch data memory.
     logic ram_mem_read;
@@ -169,6 +186,31 @@ module mem_stage (
     logic        bus_debug_ready;
     logic        bus_debug_valid;
 
+    // LED Controller Bus
+    logic [31:0] bus_ledctrl_addr;
+    logic [31:0] bus_ledctrl_wdata;
+    logic [31:0] bus_ledctrl_rdata;
+    logic        bus_ledctrl_re;
+    logic        bus_ledctrl_we;
+    logic        bus_ledctrl_ready;
+    logic        bus_ledctrl_valid;
+
+    // Button/Switch Bus
+    logic [31:0] bus_btnsw_addr;
+    logic [31:0] bus_btnsw_rdata;
+    logic        bus_btnsw_re;
+    logic        bus_btnsw_ready;
+    logic        bus_btnsw_valid;
+
+    // PWM Bus
+    logic [31:0] bus_pwm_addr;
+    logic [31:0] bus_pwm_wdata;
+    logic [31:0] bus_pwm_rdata;
+    logic        bus_pwm_re;
+    logic        bus_pwm_we;
+    logic        bus_pwm_ready;
+    logic        bus_pwm_valid;
+
     // ------------------------------------------------------------------
     // Master to Bus Routing
     // ------------------------------------------------------------------
@@ -196,6 +238,20 @@ module mem_stage (
     assign bus_debug_byte_en = debug_sel ? 4'b1111 : 4'd0;
     assign bus_debug_re      = debug_sel ? ex_mem_mem_read : 1'b0;
     assign bus_debug_we      = debug_sel ? ex_mem_mem_write : 1'b0;
+
+    // Phase 12 bus routing
+    assign bus_ledctrl_addr  = ledctrl_sel ? ex_mem_alu_result : 32'd0;
+    assign bus_ledctrl_wdata = ledctrl_sel ? ex_mem_rs2_data : 32'd0;
+    assign bus_ledctrl_re    = ledctrl_sel ? ex_mem_mem_read : 1'b0;
+    assign bus_ledctrl_we    = ledctrl_sel ? ex_mem_mem_write : 1'b0;
+
+    assign bus_btnsw_addr    = btnsw_sel ? ex_mem_alu_result : 32'd0;
+    assign bus_btnsw_re      = btnsw_sel ? ex_mem_mem_read : 1'b0;
+
+    assign bus_pwm_addr      = pwm_sel ? ex_mem_alu_result : 32'd0;
+    assign bus_pwm_wdata     = pwm_sel ? ex_mem_rs2_data : 32'd0;
+    assign bus_pwm_re        = pwm_sel ? ex_mem_mem_read : 1'b0;
+    assign bus_pwm_we        = pwm_sel ? ex_mem_mem_write : 1'b0;
 
     // ------------------------------------------------------------------
     // Debug trace buffer
@@ -504,6 +560,55 @@ module mem_stage (
     assign bus_debug_valid = debug_sel;
 
     // ------------------------------------------------------------------
+    // Phase 12: LED Controller
+    // ------------------------------------------------------------------
+    led_ctrl u_led_ctrl (
+        .clk        (clk),
+        .rst        (rst),
+        .bus_addr   (bus_ledctrl_addr),
+        .bus_wdata  (bus_ledctrl_wdata),
+        .bus_we     (bus_ledctrl_we && ledctrl_sel),
+        .bus_re     (bus_ledctrl_re && ledctrl_sel),
+        .bus_rdata  (bus_ledctrl_rdata),
+        .bus_ready  (bus_ledctrl_ready),
+        .led_out    (led_out),
+        .led_sw_ctrl(led_sw_ctrl)
+    );
+
+    // ------------------------------------------------------------------
+    // Phase 12: Button/Switch Input
+    // ------------------------------------------------------------------
+    btn_sw u_btn_sw (
+        .clk        (clk),
+        .rst        (rst),
+        .bus_addr   (bus_btnsw_addr),
+        .bus_re     (bus_btnsw_re && btnsw_sel),
+        .bus_rdata  (bus_btnsw_rdata),
+        .bus_ready  (bus_btnsw_ready),
+        .raw_btn    (raw_btn),
+        .raw_sw     (raw_sw)
+    );
+
+    // ------------------------------------------------------------------
+    // Phase 12: PWM Peripheral
+    // ------------------------------------------------------------------
+    pwm u_pwm (
+        .clk        (clk),
+        .rst        (rst),
+        .bus_addr   (bus_pwm_addr),
+        .bus_wdata  (bus_pwm_wdata),
+        .bus_we     (bus_pwm_we && pwm_sel),
+        .bus_re     (bus_pwm_re && pwm_sel),
+        .bus_rdata  (bus_pwm_rdata),
+        .bus_ready  (bus_pwm_ready),
+        .pwm_out    (pwm_out)
+    );
+
+    assign bus_ledctrl_valid = ledctrl_sel;
+    assign bus_btnsw_valid   = btnsw_sel;
+    assign bus_pwm_valid     = pwm_sel;
+
+    // ------------------------------------------------------------------
     // Read-data mux: select MMIO, timer, or SRAM based on bus valid
     // ------------------------------------------------------------------
     always_comb begin
@@ -516,6 +621,12 @@ module mem_stage (
             mem_wb_mem_read_data_in = bus_uart_rdata;
         end else if (bus_perf_valid) begin
             mem_wb_mem_read_data_in = bus_perf_rdata;
+        end else if (bus_ledctrl_valid) begin
+            mem_wb_mem_read_data_in = bus_ledctrl_rdata;
+        end else if (bus_btnsw_valid) begin
+            mem_wb_mem_read_data_in = bus_btnsw_rdata;
+        end else if (bus_pwm_valid) begin
+            mem_wb_mem_read_data_in = bus_pwm_rdata;
         end else if (bus_ram_valid) begin
             mem_wb_mem_read_data_in = bus_ram_rdata;
         end else begin

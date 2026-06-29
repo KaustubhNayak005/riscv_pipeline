@@ -12,9 +12,9 @@ Last updated: 2026-06-27
 
 The project is currently best described as:
 
-> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 is complete. Phase 9 is complete. Phase 10 is complete in simulation. Phase 11 is complete in simulation (internal peripheral bus refactor, memory-map regression tests). Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
+> Phase 1 is complete. Phase 2 is complete. Phase 3 is complete. Phase 4 is complete in simulation with a board-ready UART monitor and host loader. Phase 5 is complete in simulation (CSRs, traps, timer interrupts, MRET). Phase 6 is complete in simulation (MUL family). Phase 7 is complete. Phase 8 is complete. Phase 9 is SIMULATION VERIFIED (9/9 PASS on tb_phase9.sv). Phase 10 is complete in simulation. Phase 11 is complete in simulation (internal peripheral bus refactor, memory-map regression tests). Phase 12 is complete in simulation (LED, button/switch, PWM — 9/9 PASS on tb_phase12.sv, synthesis clean with 0 errors, 0 critical warnings). Hardware proof from Phase 0 and Phase 4 is deferred until the PYNQ-Z2 board is available.
 
-The strongest verified baseline is a simulated and implemented 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, a custom packed-SIMD extension, a verified workload suite demonstrating measurable speedups in cycle/instruction counts, and an internal peripheral signal-bundle bus for MMIO routing.
+The strongest verified baseline is a simulated and synthesised 5-stage RV32I pipelined CPU with UART MMIO, performance counters, a ROM-preloaded loadable instruction memory, a simulation loader path, a UART monitor with 7 commands, subword load/store support, FENCE/FENCE.I NOP, ECALL/EBREAK/illegal instruction trapping with MRET, M-mode CSRs, timer interrupts, a 64-entry BHT dynamic branch predictor, a custom packed-SIMD extension (SIMULATION VERIFIED), a verified workload suite demonstrating measurable speedups in cycle/instruction counts, an internal peripheral signal-bundle bus for MMIO routing, and three optional board peripherals (LED control, button/switch input, PWM).
 
 ---
 
@@ -33,10 +33,10 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 6: RV32M Multiply Extension | Complete (100%) | [BOARD] Needs PYNQ-Z2 proof | MUL family tests via tb_phase6.sv verified in simulation |
 | Phase 7: Run Small C Programs | Complete (100%) | None | C runtime, linker script, and "Hello World" program validated in simulation over UART. |
 | Phase 8: Branch Prediction and CPI Experiments | Complete in RTL (90%) | [SIM] Run simulations | before/after cycles, stalls, flushes, CPI/IPC comparison |
-| Phase 9: Custom Packed-SIMD Extension | RTL complete, sim pending (85%) | [SIM] Run tb_phase9.sv in xsim | custom opcode tests, byte-lane kernel demo, speedup report |
+| Phase 9: Custom Packed-SIMD Extension | SIMULATION VERIFIED (100%) | [BOARD] Needs PYNQ-Z2 proof | custom opcode tests, byte-lane kernel demo, speedup report |
 | Phase 10: Real Workloads and Benchmark Demos | Complete in Sim (90%) | [BOARD] Needs PYNQ-Z2 proof | physical hardware measurement |
 | Phase 11: Memory System and Bus Cleanup | Complete in Sim (100%) | None | physical hardware measurement (no board-dependent behavior to verify; bus is purely internal) |
-| Phase 12: Optional Peripherals | Not started (0%) | [OPTIONAL] LED + button/switch + PWM recommended; SPI and VGA dropped from scope | selected peripheral simulation and, if hardware-facing, board proof |
+| Phase 12: Optional Peripherals | Complete in Sim (100%) | [BOARD] Needs PYNQ-Z2 proof | selected peripheral simulation and, if hardware-facing, board proof |
 | Phase 13: Dual-Core SoC Extension | Not started (0%) | [LATE] Depends on monitor/traps/bus/software | mailbox/shared-memory simulation, arbiter proof, final board demo |
 
 ---
@@ -54,10 +54,10 @@ This generated table is the quick triage view: what exists, what state it is in,
 | 6 | RV32M Multiply Extension | Complete | 100% | MUL family RTL implemented, tb_phase6.sv simulation passed | add DIV/DIVU/REM/REMU later if needed |
 | 7 | Run Small C Programs | Complete | 100% | linker script, startup, C runtime flow, and C demos implemented/verified | None |
 | 8 | Branch Prediction and CPI Experiments | Complete in RTL | 90% | Static (BTFNT) and Dynamic (64-entry BHT) predictors implemented and wired; bubble sort C benchmark generated | capture simulation metrics |
-| 9 | Custom Packed-SIMD Extension | RTL complete, sim pending | 85% | PADD8/PSUB8/PMAXU8/PMINU8/PAVG8 on custom-0 opcode; tb_phase9.sv created | run simulation in xsim; fix any failures |
+| 9 | Custom Packed-SIMD Extension | SIM VERIFIED | 100% | 9/9 PASS on tb_phase9.sv; PADD8/PSUB8/PMAXU8/PMINU8/PAVG8 | None |
 | 10 | Real Workloads and Benchmark Demos | Complete in Sim | 90% | benchmark suite created, simulated in Vivado, speedup report compiled | Physical hardware measurement |
 | 11 | Memory System and Bus Cleanup | Complete in Sim | 100% | internal peripheral bus (`bus_<periph>_*`) defined in `mem_stage.sv`; `tb_memory_map.sv` passes all 6 MMIO checks | physical hardware measurement (no board-dependent behavior; bus is purely internal) |
-| 12 | Optional Peripherals | Not started | 0% | GPIO-style board LEDs exist in `fpga_top`, but no new roadmap peripheral detected | implement LED control register, button/switch input, and PWM (recommended scope); SPI master and VGA dropped |
+| 12 | Optional Peripherals | Complete in Sim | 100% | LED, button/switch, PWM RTL + tb_phase12.sv verified (9/9 PASS); synthesis clean | board arrival |
 | 13 | Dual-Core SoC Extension | Not started | 0% | roadmap section exists; no dual-core RTL detected | implement only after bus/monitor/trap/software work |
 
 ---
@@ -65,6 +65,9 @@ This generated table is the quick triage view: what exists, what state it is in,
 ## Recently Completed
 
 - [2026-06-26] **Phase 11**: Implemented internal peripheral bus refactor in mem_stage.sv. All peripherals (RAM, UART, Timer, Perf Counters, Debug) routed through explicit signal bundles (`bus_<periph>_*`). Verified with new `tb_memory_map.sv` regression tests demonstrating zero change in external behavior.
+
+- [2026-06-28] **Phase 12**: Implemented optional peripherals (LED control, button/switch input, PWM). Created `led_ctrl.sv`, `btn_sw.sv`, `pwm.sv`, and `tb_phase12.sv` (9/9 PASS including PWM waveform and disable checks). All 3 regression testbenches passing. Fixed critical synthesis bug in `fpga_top.sv` (multi-driven `led` net — removed conflicting `always_ff` assignment). Re-synthesis confirms 0 errors, 0 critical warnings. Synthesised design: 84a84c29.
+- [2026-06-28] **Phase 9 SIM VERIFICATION**: Completed simulation of `tb_phase9.sv` in Vivado xsim. 9/9 tests PASS. Fixed elaboration warning (unconnected `raw_btn` port in `tb_phase9.sv`). All 3 regression testbenches re-run and passing.
 
 
 - [2026-06-21] **Phase 10**: Created workload suite (`scalar_checksum.c`, `simd_checksum.c`, `branch_sort.c`). Fixed SIMD correctness bugs (alignment, 8-bit overflow) so scalar and SIMD output mathematically identical sums. Ran batch Vivado simulations. Generated `results/phase10_benchmark_report.md` proving 3.85x cycle speedup for SIMD and validating 64-entry BHT efficiency.
@@ -109,13 +112,9 @@ This generated table is the quick triage view: what exists, what state it is in,
 
 ## Current Next Step
 
-Phases 0–11 are complete in simulation. The next steps are:
+Phases 0–12 are complete in simulation. The next steps are:
 
-1. Begin Phase 12: Optional Peripherals. Add LED control register,
-   button/switch input register, and a PWM peripheral (recommended
-   scope). Simulate each first; SPI master and VGA are dropped from this
-   phase.
-2. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use
+1. When the PYNQ-Z2 board is available, connect a USB-UART adapter and use
    `tools/mem_to_load_commands.py -f interactive` to run physical board tests.
 
 ## Verification Evidence

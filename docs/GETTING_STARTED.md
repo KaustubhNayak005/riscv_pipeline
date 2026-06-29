@@ -297,10 +297,10 @@ The project is organized into 13 phases. Think of them as chapters in a book:
 | 6 | Multiply/Divide | 0% | RV32M extension (hardware multiply and divide). |
 | 7 | Run C Programs | 0% | Toolchain for compiling C code to run on this processor. |
 | 8 | Branch Prediction | 0% | Smarter branch handling to improve speed. |
-| 9 | SIMD Extension | 0% | Custom "packed" instructions for parallel data processing. |
+| 9 | Custom Packed-SIMD Extension | Complete in simulation — 9/9 tb_phase9.sv tests PASS, verified 2026-06-28 | Custom "packed" instructions for parallel data processing. |
 | 10 | Benchmark Demos | 0% | Real workloads to measure performance. |
 | 11 | Memory System | 15% | Clean up the bus and peripheral architecture. |
-| 12 | Extra Peripherals | 0% | Optional: GPIO, PWM, SPI, display controller. |
+| 12 | Optional Peripherals | Complete in simulation — 9/9 tb_phase12.sv tests PASS (incl. waveform-verified PWM disable), verified 2026-06-28 | LED control, button/switch input, PWM peripheral implemented. |
 | 13 | Dual-Core | 0% | Two CPUs working together. Very ambitious, do last. |
 
 **Current next step:** Phase 5 (traps and timer interrupts) — but first, Phase 4 needs physical board verification when the PYNQ-Z2 is available.

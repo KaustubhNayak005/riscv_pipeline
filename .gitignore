@@ -21,6 +21,7 @@ dfx_runtime.txt
 *.runs/
 *.sim/
 
+
 # Bitstreams and build artifacts
 *.bit
 *.bin
@@ -36,6 +37,7 @@ Desktop.ini
 .commandcode/
 mkdir/
 .githooks/
+
 *.dcp 
 
 # Documentation QA artifacts
@@ -51,3 +53,4 @@ dup_report.txt
 # Temporary session scripts
 fix*.py
 append_report.py
+

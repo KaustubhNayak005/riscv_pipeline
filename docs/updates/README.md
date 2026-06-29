@@ -21,3 +21,4 @@
 - [session_2026-06-23_1800_Antigravity.md](session_2026-06-23_1800_Antigravity.md) — Phase 11 implementation (internal peripheral bus refactor, tb_memory_map.sv)
 - [session_2026-06-24_1100_Antigravity.md](session_2026-06-24_1100_Antigravity.md) — Phase 11 deep verification pass (complete simulation outputs, report fixes)
 - [session_2026-06-26_1645_antigravity.md](session_2026-06-26_1645_antigravity.md) — Phase 11 documentation persistence pass
+- [session_2026-06-28_0320_CommandCode.md](session_2026-06-28_0320_CommandCode.md) — Phase 12 implementation + simulation verification + synthesis fix + full Prompt 3 documentation update

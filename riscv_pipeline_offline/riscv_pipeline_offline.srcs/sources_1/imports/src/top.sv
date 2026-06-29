@@ -45,7 +45,13 @@ module top (
     output logic [31:0] dbg_trace_wb_data,
     output logic [31:0] dbg_trace_status,
     output logic [2:0]  dbg_trace_count,
-    output logic [1:0]  dbg_trace_head
+    output logic [1:0]  dbg_trace_head,
+    // Phase 12 peripheral I/O
+    output logic [3:0]  led_out,
+    output logic        led_sw_ctrl,
+    input  logic [1:0]  raw_btn,
+    input  logic [1:0]  raw_sw,
+    output logic        pwm_out
 );
 
     logic [31:0] pc_current;
@@ -612,7 +618,13 @@ module top (
         .mon_trace_status       (dbg_trace_status),
         .mon_trace_count        (dbg_trace_count),
         .mon_trace_head         (dbg_trace_head),
-        .mon_trace_sel          (dbg_trace_sel)
+        .mon_trace_sel          (dbg_trace_sel),
+        // Phase 12 peripheral I/O
+        .led_out                (led_out),
+        .led_sw_ctrl            (led_sw_ctrl),
+        .raw_btn                (raw_btn),
+        .raw_sw                 (raw_sw),
+        .pwm_out                (pwm_out)
     );
 
     (* DONT_TOUCH = "yes" *) mem_wb_reg u_mem_wb_reg (

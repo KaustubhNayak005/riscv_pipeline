@@ -1,6 +1,6 @@
 # Known Issues
 
-> **Last updated:** 2026-06-26  
+> **Last updated:** 2026-06-28  
 > Issues are never deleted — resolved issues are marked with resolution notes.
 
 ## Summary
@@ -101,3 +101,22 @@
 - **Notes:** A cache was explicitly NOT added as part of this phase, per
   `docs/roadmap.md`'s own Phase 11 scope — the project's small on-chip
   BRAM does not yet justify one.
+
+#### ISSUE-008: fpga_top.sv multi-driven led net
+- **Severity:** Critical
+- **Status:** Resolved
+- **Category:** Synthesis Anti-Pattern
+- **Description:** The `led` output in `fpga_top.sv` was driven by both a
+  continuous `assign` (line 330) and an `always_ff` sequential block
+  (`led <= 4'b0000` in reset clause, line 320). This caused 12
+  `[Synth 8-6859] multi-driven net` critical warnings during synthesis.
+- **Workaround:** None — synthesis warnings indicated the `always_ff`
+  driver was silently ignored by the tool, favouring the constant GND
+  driver. Hardware behaviour was undefined.
+- **Resolution:** Resolved on 2026-06-28. Removed `led <= 4'b0000` from
+  the `always_ff` reset clause. The `assign` on line 330 already handles
+  reset correctly via `fail_sync`, `pass_sync`, and `pll_locked`
+  conditions in the mux expression. Re-synthesis confirmed 0 errors,
+  0 critical warnings (Checksum: 84a84c29).
+- **Notes:** Saved `results/synthesis_clean_2026-06-28.txt` with the
+  pre-fix and post-fix synthesis output for audit trail.

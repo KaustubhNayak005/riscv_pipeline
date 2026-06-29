@@ -25,7 +25,7 @@ Since the board is not available, you are blocked *only* from physical hardware 
 | **Phase 6** | RV32M Multiply/Divide Extension | **95%** (RTL, stall logic, timing closure, full sim) | Running an RV32M benchmark on the physical board. |
 | **Phase 7** | Run Small C Programs | **90%** (Linker, startup, C runtime, simulated C programs) | Real C benchmark execution on the board. |
 | **Phase 8** | Branch Prediction & CPI Experiments | **90%** (Predictor RTL, branch metrics, CPI comparison in sim) | On-board benchmark timings. |
-| **Phase 9** | Custom Packed-SIMD Extension | **90%** (Custom opcode RTL, tests, data-parallel demo in sim) | On-board execution and speedup report. |
+| **Phase 9** | Custom Packed-SIMD Extension | **100%** (9/9 tb_phase9.sv tests PASS, verified 2026-06-28) | Physical SIMD benchmark execution on board and speedup measurement. |
 | **Phase 10** | Real Workloads and Benchmark Demos | **90%** (Workload suite creation, simulated cycle/CPI reports) | Physical hardware measurement. |
 | **Phase 11** | Memory System and Bus Cleanup | **100%** (Internal signal-bundle peripheral bus in `mem_stage.sv`; `tb_memory_map.sv` regression coverage; memory-map doc updated) | None — Phase 11 has no board-dependent component. |
 | **Phase 12** | Optional Peripherals | **100% executable without board** (LED control register, button/switch input register, and PWM peripheral — all simulation-testable with self-checking testbenches; SPI master and VGA dropped from scope) | Physical confirmation that LEDs, buttons/switches, and PWM output behave correctly on real PYNQ-Z2 hardware. |

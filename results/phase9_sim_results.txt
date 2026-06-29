@@ -1,0 +1,42 @@
+===== Phase 9 Simulation Results =====
+Date: 2026-06-27
+Tool: Vivado v2025.2 XSim
+Test: tb_phase9 — Custom Packed-SIMD Extension
+
+Compilation: OK (warnings only, no errors)
+Elaboration: OK (warnings only, no errors)
+
+===== SIMULATION OUTPUT =====
+
+Time resolution is 1 ps
+===== Phase 9 — Packed-SIMD Tests =====
+Byte ordering: lane 0 = [7:0], lane 1 = [15:8],
+                lane 2 = [23:16], lane 3 = [31:24]
+
+--- Test 1: PADD8 ---
+  PASS: PADD8: 0x01020304 + 0x04030201 = 0x05050505 (x5 = 0x05050505)
+--- Test 2: PSUB8 ---
+  PASS: PSUB8: 0x0A0B0C0D - 0x03020104 = 0x07090B09 (x5 = 0x07090b09)
+--- Test 3: PMAXU8 ---
+  PASS: PMAXU8: max(0x10A0F005, 0x2080FF50) = 0x20A0FF50 (x5 = 0x20a0ff50)
+--- Test 4: PMINU8 ---
+  PASS: PMINU8: min(0x10A0F005, 0x2080FF50) = 0x1080F005 (x5 = 0x1080f005)
+--- Test 5: PAVG8 ---
+  PASS: PAVG8: avg(0x02020202, 0x0A0A0A0A) = 0x06060606 (x5 = 0x06060606)
+--- Test 6: PADD8 wraparound (via LUI instructions) ---
+  PASS: PADD8 copy: x3=0xFFFF0000 through x0 gives 0xFFFF0000 (x5 = 0xffff0000)
+  PASS: PADD8: LUI-loaded 0x12345000+0x6789A000=0x79BDF000 (x5 = 0x79bdf000)
+--- Test 7: PSUB8 underflow ---
+  PASS: PSUB8 wrap: 0x00 - 0x01 = 0xFF across all lanes (x5 = 0xffffffff)
+--- Test 8: PAVG8 rounding ---
+  PASS: PAVG8 floor: (0x01030105+0)>>1 = 0x00010002 (x5 = 0x00010002)
+--- Test 9: Reserved funct3=101 -> illegal_instr ---
+  PASS: Custom-0 funct3=101: x6 NOT written (illegal) (x6 = 0x00000000)
+
+*** PHASE 9 ALL TESTS PASSED ***
+$finish called at time : 13386 ns : File "C:/Users/nayak/Desktop/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/sim/tb_phase9.sv" Line 282
+
+===== RESULT SUMMARY =====
+Tests: 9/9 PASS
+Failures: 0
+Total simulation time: 13386 ns
