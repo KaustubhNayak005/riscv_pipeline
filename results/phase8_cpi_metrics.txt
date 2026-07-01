@@ -1,0 +1,38 @@
+Phase 8 — Branch Predictor CPI Results
+========================================
+Recorded: 2026-07-01
+Simulation tool: Vivado XSim v2025.2 (win64)
+
+Testbench: tb_c_program.sv (driven by newly created run_tb_branch_sort.tcl)
+Note: No Phase-8-specific runner existed previously. tb_bht.sv is a unit-level
+2-bit saturating counter test (state-machine transitions only), not a CPI
+benchmark — it does not run any benchmark program or print CPI numbers.
+
+Program: sw/branch_sort.mem
+Design: 5-stage RV32I pipeline with 64-entry BHT (dynamic branch predictor)
+
+Simulation completed without fatal errors.
+$finish at time: 20010275 ns
+Iterations: 13 (1 cold-start + 12 steady-state)
+
+--- Performance Counter Data (decoded from UART output) ---
+
+Cold start (iteration 1):
+  DCYC = 0x00005083  (20,611 cycles)
+  DINS = 0x00004003  (16,387 instructions)
+  DSTL = 0x000007E0  (2,016 stalls)
+  DFLS = 0x00000040  (64 flushes)
+  CPI  = 20611 / 16387 = 1.258
+
+Steady state (iterations 2-13):
+  DCYC = 0x00005085  (20,613 cycles)
+  DINS = 0x00004003  (16,387 instructions)
+  DSTL = 0x000007E0  (2,016 stalls)
+  DFLS = 0x00000041  (65 flushes)
+  CPI  = 20613 / 16387 = 1.258
+
+--- Baseline note ---
+Predictor-enabled CPI = 1.258. A predictor-disabled baseline for the same
+program cannot be measured without RTL modification: the BHT module has no
+parameter, `ifdef, generate-block guard, or config-register bit to
+disable/bypass prediction non-invasively.

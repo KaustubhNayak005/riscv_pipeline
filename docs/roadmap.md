@@ -32,7 +32,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 | Phase 5: Traps, Exceptions, and Timer Interrupts | Complete (100%) | [SIM] Run tb_phase5.sv in xsim | trap CSR tests, trap entry/return tests, timer interrupt demo |
 | Phase 6: RV32M Multiply Extension | Complete (100%) | [BOARD] Needs PYNQ-Z2 proof | MUL family tests via tb_phase6.sv verified in simulation |
 | Phase 7: Run Small C Programs | Complete (100%) | None | C runtime, linker script, and "Hello World" program validated in simulation over UART. |
-| Phase 8: Branch Prediction and CPI Experiments | Complete in RTL (90%) | [SIM] Run simulations | before/after cycles, stalls, flushes, CPI/IPC comparison |
+| Phase 8: Branch Prediction and CPI Experiments | Complete in Simulation — CPI=1.258 (branch_sort.mem, 64-entry BHT) — see results/phase8_cpi_metrics.txt | None | CPI=1.258 on branch_sort.mem; baseline not directly measured (BHT has no non-RTL disable path) |
 | Phase 9: Custom Packed-SIMD Extension | SIMULATION VERIFIED (100%) | [BOARD] Needs PYNQ-Z2 proof | custom opcode tests, byte-lane kernel demo, speedup report |
 | Phase 10: Real Workloads and Benchmark Demos | Complete in Sim (90%) | [BOARD] Needs PYNQ-Z2 proof | physical hardware measurement |
 | Phase 11: Memory System and Bus Cleanup | Complete in Sim (100%) | None | physical hardware measurement (no board-dependent behavior to verify; bus is purely internal) |

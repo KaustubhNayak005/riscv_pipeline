@@ -32,3 +32,34 @@ Sorted Array Output (From benchmark.c modification):
 00000012
 00000013
 DONE
+
+---
+
+## Re-run: 2026-07-01 — Predictor-Enabled CPI (64-entry BHT)
+
+**Testbench:** `tb_c_program.sv` (via newly created `run_tb_branch_sort.tcl` — no Phase-8-specific runner existed previously)
+**Note:** `tb_bht.sv` is a unit-level 2-bit saturating counter test, NOT a CPI benchmark — it tests state-machine transitions (taken/not-taken training) without running any benchmark program.
+
+**Program:** `sw/branch_sort.mem`
+**Simulation tool:** Vivado XSim v2025.2 (win64)
+
+Decoded UART output (13 iterations, 1 cold-start + 12 steady-state):
+
+Cold start:
+  DCYC = 0x00005083 (20,611 cycles)
+  DINS = 0x00004003 (16,387 instructions)
+  DSTL = 0x000007E0 (2,016 stalls)
+  DFLS = 0x00000040 (64 flushes)
+  CPI  = 20,611 / 16,387 = 1.258
+
+Steady state (hot, runs 2-13):
+  DCYC = 0x00005085 (20,613 cycles)
+  DINS = 0x00004003 (16,387 instructions)
+  DSTL = 0x000007E0 (2,016 stalls)
+  DFLS = 0x00000041 (65 flushes)
+  CPI  = 20,613 / 16,387 = 1.258
+
+**Baseline (predictor-disabled) note:** 
+The BHT module (`bht.sv`) has no RTL parameter, `ifdef`, generate-block guard, or config-register bit to disable/bypass prediction non-invasively. Git-history checkout of a pre-Phase-8 top.sv (commit 58d49ae) was attempted but the pre-BHT pipeline does not route UART signals identically, so the same benchmark program cannot produce UART output on that version. The benchmark binary `branch_sort.mem` also did not exist pre-Phase 8 (added in Phase 10).
+
+**Result:** Predictor-enabled CPI = 1.258 is reported. An improvement-over-baseline percentage cannot be computed for the same program without an RTL change to add a predictor-disable parameter. The existing "< 300 flushes for > 140,000 instructions" note in the original bubble-sort run (using a different, larger benchmark) remains a separate data point — not a valid baseline for improvement computation.
