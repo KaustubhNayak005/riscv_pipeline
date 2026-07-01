@@ -289,7 +289,7 @@ The project is organized into 13 phases. Think of them as chapters in a book:
 | Phase | Name | Status | What It Means |
 |-------|------|--------|---------------|
 | 0 | Hardware Demo | 50% (deferred) | Bitstream exists. Waiting for the physical PYNQ-Z2 board to do the real test. |
-| 1 | Software Tooling | 80% | Assembler and build scripts exist. Needs more test programs. |
+| 1 | Software Tooling | Regression baseline locked (9/9 PASS, see tools/run_phase1_regression.ps1). Still needs standalone ALU/branch/load-store/UART/perf-counter test programs and expected UART output files. | C toolchain builds 9 programs from source; expected-output regression in tests/expected/ verifies bit-identical reproduction. |
 | 2 | RV32I Base | ✅ 100% | All basic RISC-V instructions work. Simulated and verified. |
 | 3 | Debug Features | ✅ 100% | Debug registers and trace buffer let you see what the CPU is doing. |
 | 4 | UART Monitor | 85% | A serial terminal interface with 7 commands (load, run, reset, etc.). All RTL code written. Needs physical board test. |
