@@ -23,3 +23,4 @@
 - [session_2026-06-26_1645_antigravity.md](session_2026-06-26_1645_antigravity.md) — Phase 11 documentation persistence pass
 - [session_2026-06-28_0320_CommandCode.md](session_2026-06-28_0320_CommandCode.md) — Phase 12 implementation + simulation verification + synthesis fix + full Prompt 3 documentation update
 - [session_2026-07-01_Phase8_Capture.md](session_2026-07-01_Phase8_Capture.md) — Phase 8 CPI capture and documentation update (branch_sort.mem re-run, CPI=1.258, baseline limitation documented)
+- [session_2026-07-01_DeepSeek.md](session_2026-07-01_DeepSeek.md) — Issue 3: Phase 1 Expected-Output Regression (9-program C toolchain baseline, tests/expected/, run_phase1_regression.ps1, 3-run PASS/FAIL/PASS verification)
