@@ -1,11 +1,5 @@
 # Session Log — 2026-06-28 03:20 UTC+5:30
 
-## Machine Fingerprint
-- Hostname: Kaustubh
-- OS: Windows 10 (build 26200)
-- CPU: 12th Gen Intel(R) Core(TM) i5-12500H (12 physical, 16 logical)
-- Username: kaustubh\nayak
-- Timestamp: 2026-06-28 03:20 IST
 
 ## Work Summary
 Phase 12 implementation and simulation verification, synthesis fix, and
