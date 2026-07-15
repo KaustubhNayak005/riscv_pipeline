@@ -14,13 +14,16 @@ xsim.dir/
 *.wcfg
 dfx_runtime.txt
 
+# Generated Vivado project file
+# Recreate it any time with:  vivado -mode batch -source create_project.tcl
+*.xpr
+
 # Generated project folders
 *.cache/
 *.hw/
 *.ip_user_files/
 *.runs/
 *.sim/
-
 
 # Bitstreams and build artifacts
 *.bit
@@ -38,8 +41,7 @@ Desktop.ini
 .idea/
 mkdir/
 .githooks/
-
-*.dcp 
+*.dcp
 
 # Documentation QA artifacts
 docs_*.md
