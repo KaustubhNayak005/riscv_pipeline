@@ -21,6 +21,3 @@
 ## Guides
 - [Phase 8 Benchmark Suite Guide](guides/Phase8_Benchmark_Suite_Guide.md)
 - [Phase 8 Verification Guide](guides/Phase8_Verification_Guide.md)
-
-## Session Logs
-- [Session Log Index](updates/README.md)

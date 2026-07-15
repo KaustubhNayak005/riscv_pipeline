@@ -156,7 +156,7 @@ Topics organized by section with key points to prepare. Refer to the linked doc 
 
 ## 10. FPGA Implementation and Results
 
-> Refer: [overview.md](./overview.md) — Implemented Proof Points, Top-Level Structure; docs/updates/README.md — Vivado Build Results
+> Refer: [overview.md](./overview.md) — Implemented Proof Points, Top-Level Structure
 
 - Target board: PYNQ-Z2 / Zynq-7000 (`xc7z020clg400-1`)
 - Clock: 125 MHz board clock → 25 MHz CPU clock via `PLLE2_BASE`

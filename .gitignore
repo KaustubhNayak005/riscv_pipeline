@@ -33,24 +33,16 @@ dfx_runtime.txt
 Thumbs.db
 Desktop.ini
 
-# Custom ignored directories
-.commandcode/
+# IDE and tool project folders
+.vscode/
+.idea/
 mkdir/
 .githooks/
 
 *.dcp 
 
 # Documentation QA artifacts
-docs_fix_report.md
-docs_verification_report.md
-docs_pass3_report.md
-docs_pass4_report.md
-docs_pass5_report.md
-docs_phase11_report.md
-docs_pass8_report.md
-docs_pass9_report.md
-docs/updates/docs_issues.md 
-dup_report.txt
+docs_*.md
 
 # Temporary session scripts
 fix*.py

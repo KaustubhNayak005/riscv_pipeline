@@ -86,7 +86,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 - Generated Implementation Plan for Phase 5 (Traps, Exceptions, Timers).
 - Added DS srijith, Raunit kapoor, and Hemanth v as contributors.
 - Created `docs/GETTING_STARTED.md` — comprehensive user guide for project owner with prompt template, folder structure, roadmap summary, and troubleshooting.
-- Enforced mandatory documentation update system: initialized git repo, installed pre-commit/post-commit/pre-push hooks with `check_docs_stale.ps1`, hardened `ai_context.md` with PRE-EXIT MANDATORY CHECKLIST and inline session log template, added `.gitignore` for Vivado artifacts.
+- Enforced mandatory documentation update system: initialized git repo, installed pre-commit/post-commit/pre-push hooks with `check_docs_stale.ps1`, added `.gitignore` for Vivado artifacts.
 - Added readable assembly source for the current demo/regression ROM.
 - Added a local RV32I assembler and build script for generating `program.mem`.
 - Generated ROM initialization include from assembly.
@@ -107,7 +107,7 @@ This generated table is the quick triage view: what exists, what state it is in,
 - Created `docs/architecture/uart-monitor.md` with full command reference and protocol specification.
 - Updated testbench with monitor integration notes and UART RX sim helper.
 - Added a loadable instruction-memory foundation with a write-port hook in `instr_mem.sv`, threaded loader inputs through `if_stage.sv` and `top.sv`, exercised the load port from `tb_top.sv`, and added a host-side command-stream helper.
-- Initialized automated AI context management (`docs/ai_context.md`) and automatic session logging.
+- Initialized project documentation system.
 
 ---
 
@@ -786,7 +786,7 @@ This is practical only if it is treated as a small shared-memory dual-core exper
 - 2 cores
 - 1 thread per core
 - private data memory per core (no shared BRAM, no bus arbiter — eliminates arbitration entirely)
-- dedicated mailbox peripheral for inter-core communication (see docs/updates/phase13_goals.md)
+- dedicated mailbox peripheral for inter-core communication
 - shared UART TX (hardware priority MUX, Core 0 > Core 1); UART RX routed to Core 0 only
 - private timer per core
 - no caches, no coherency
