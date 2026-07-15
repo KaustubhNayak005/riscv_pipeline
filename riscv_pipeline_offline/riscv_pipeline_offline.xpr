@@ -4,7 +4,7 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="71" Path="C:/Users/sriji/projects/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.xpr">
+<Project Product="Vivado" Version="7" Minor="71" Path="riscv_pipeline_offline.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="1994054724be4d4b9bf501795b581feb"/>
@@ -530,7 +530,7 @@
         <Option Name="LogicalNoCTop" Val=""/>
         <Option Name="LogicalNoCTopLib" Val=""/>
         <Option Name="Dmv" Val=""/>
-        <Option Name="xsim.simulate.xsim.more_options" Val="-testplusarg PROGRAM_MEM=C:/Users/sriji/projects/riscv32-processor/riscv_pipeline_offline/riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/mem/program.mem"/>
+        <Option Name="xsim.simulate.xsim.more_options" Val="-testplusarg PROGRAM_MEM=../../../../riscv_pipeline_offline.srcs/sim_1/imports/riscv_pipeline/mem/program.mem"/>
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
